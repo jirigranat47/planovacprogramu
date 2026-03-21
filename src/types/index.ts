@@ -12,6 +12,7 @@ export interface Activity {
   description: string | null;
   url: string | null;
   category: string | null;
+  trackId: string | null;
   subtasks: Subtask[];
 }
 

@@ -10,13 +10,14 @@ export async function PATCH(
     const body = await request.json()
     const { startTime, trackId, duration } = body
 
+    const dataToUpdate: any = {}
+    if (startTime !== undefined) dataToUpdate.startTime = startTime ? new Date(startTime) : null
+    if (trackId !== undefined) dataToUpdate.trackId = trackId
+    if (duration !== undefined) dataToUpdate.duration = parseInt(duration)
+
     const updatedActivity = await prisma.activity.update({
       where: { id },
-      data: {
-        startTime: startTime ? new Date(startTime) : null,
-        trackId: trackId || null,
-        duration: duration ? parseInt(duration) : undefined
-      }
+      data: dataToUpdate
     })
 
     return NextResponse.json(updatedActivity)

@@ -44,23 +44,55 @@ function DraggableActivity({ activity }: { activity: Activity }) {
 }
 
 // --- Helpery pro pozicování ---
-const getPosition = (startTimeStr: string | null, eventStartTime?: string) => {
-  if (!startTimeStr || !eventStartTime) return 0;
+const getPosition = (startTimeStr: string | null, timelineStart?: Date) => {
+  if (!startTimeStr || !timelineStart) return 0;
   const date = new Date(startTimeStr);
-  const base = new Date(eventStartTime);
-  base.setHours(8, 0, 0, 0);
-  const diffInMinutes = (date.getTime() - base.getTime()) / 60000;
+  const diffInMinutes = (date.getTime() - timelineStart.getTime()) / 60000;
   return Math.max(0, diffInMinutes * 2); // 2px = 1min
 };
+
 
 const getWidth = (duration: number) => duration * 2;
 
 // --- Komponenta pro aktivitu na časové ose (Draggable) ---
-function TimelineActivity({ activity, trackColor, eventStartTime }: { activity: Activity, trackColor: string, eventStartTime: string }) {
+function TimelineActivity({ activity, trackColor, timelineStart, onResizeEnd }: { activity: Activity, trackColor: string, timelineStart: Date, onResizeEnd: (id: string, newDuration: number) => void }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: activity.id,
     data: { activity }
   });
+
+  const [resizingWidth, setResizingWidth] = useState<number | null>(null);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation(); // Zabránit dnd-kitu v převzetí události
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = getWidth(activity.duration);
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      setResizingWidth(Math.max(10, startWidth + deltaX)); // min 5 minutes (10px)
+    };
+
+    const handlePointerUp = (upEvent: PointerEvent) => {
+      const finalDeltaX = upEvent.clientX - startX;
+      const finalWidth = Math.max(10, startWidth + finalDeltaX);
+      const newDuration = Math.round(finalWidth / 2);
+      setResizingWidth(null);
+      if (newDuration !== activity.duration) { 
+        onResizeEnd(activity.id, newDuration);
+      }
+      
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+  };
+
+  const currentWidth = resizingWidth !== null ? resizingWidth : getWidth(activity.duration);
+  const currentDuration = resizingWidth !== null ? Math.round(resizingWidth / 2) : activity.duration;
 
   return (
     <div 
@@ -69,15 +101,22 @@ function TimelineActivity({ activity, trackColor, eventStartTime }: { activity: 
       {...attributes}
       className={`absolute bg-white border-l-4 rounded-r-lg p-3 shadow-sm border border-gray-200 overflow-hidden cursor-grab active:cursor-grabbing transition-opacity ${isDragging ? 'opacity-20' : ''}`}
       style={{ 
-        left: `${getPosition(activity.startTime, eventStartTime)}px`, 
-        width: `${getWidth(activity.duration)}px`,
+        left: `${getPosition(activity.startTime, timelineStart)}px`, 
+        width: `${currentWidth}px`,
         borderLeftColor: trackColor,
         top: '12px',
-        bottom: '12px'
+        bottom: '12px',
+        zIndex: resizingWidth !== null ? 50 : 10
       }}
     >
       <h4 className="text-xs font-bold truncate leading-none mb-1">{activity.name}</h4>
-      <div className="text-[9px] text-gray-400 font-bold">{activity.duration}m</div>
+      <div className="text-[9px] text-gray-400 font-bold">{currentDuration}m</div>
+      
+      {/* Resizing Handle */}
+      <div 
+        className="absolute right-0 top-0 bottom-0 w-3 cursor-ew-resize hover:bg-blue-500/20 active:bg-blue-500/40 group-hover:opacity-100 transition-colors z-20"
+        onPointerDown={handlePointerDown}
+      />
     </div>
   );
 }
@@ -121,15 +160,19 @@ export default function Home() {
     })
   );
 
+  // Pomocné proměnné pro mřížku
+  const timelineStart = event ? (() => { const d = new Date(event.startTime); d.setMinutes(0, 0, 0); return d; })() : new Date();
+  const timelineEnd = event ? (() => { const d = new Date(event.endTime); d.setMinutes(59, 59, 999); return d; })() : new Date();
+  const timelineHours = event ? Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60)) : 14;
+
   const calculateTimeFromCoordinates = (translatedLeft: number, overRect: any) => {
     if (!event) return null;
     const timelineStartX = overRect.left + 160;
     const pixelsFromStart = translatedLeft - timelineStartX;
     const minutesOffset = pixelsFromStart / 2;
-    const baseDate = new Date(event.startTime);
-    baseDate.setHours(8, 0, 0, 0);
-    return new Date(baseDate.getTime() + minutesOffset * 60000);
+    return new Date(timelineStart.getTime() + minutesOffset * 60000);
   };
+
 
   const handleDragMove = (dndEvent: any) => {
     const { active, over } = dndEvent;
@@ -174,6 +217,74 @@ export default function Home() {
     } catch (error) { console.error('Chyba:', error); }
   };
 
+  const applyRippleEffect = (
+    activities: Activity[],
+    movedActivityId: string,
+    newStartTime: Date,
+    newTrackId: string,
+    newDuration: number
+  ) => {
+    const targetTrackActivities = activities.filter(a => a.trackId === newTrackId && a.id !== movedActivityId);
+    const safeOriginalTime = (timeStr: string | null) => new Date(timeStr || 0).getTime();
+    
+    const allInTrack = [
+      { id: movedActivityId, _startTime: newStartTime.getTime(), _duration: newDuration, _trackId: newTrackId, _sortTime: newStartTime.getTime() },
+      ...targetTrackActivities.map(a => {
+        const t = safeOriginalTime(a.startTime);
+        return {
+          id: a.id,
+          _startTime: t,
+          _duration: a.duration,
+          _trackId: a.trackId,
+          _sortTime: t === newStartTime.getTime() ? t + 1 : t
+        }
+      })
+    ];
+
+    allInTrack.sort((a, b) => a._sortTime - b._sortTime);
+
+    let currentEndTime = 0;
+    const updatesToSave: any[] = [];
+
+    for (const act of allInTrack) {
+      let finalStartTime = act._startTime;
+
+      if (finalStartTime < currentEndTime) {
+        finalStartTime = currentEndTime;
+      }
+
+      const finalEndTime = finalStartTime + (act._duration * 60000);
+      currentEndTime = finalEndTime;
+
+      const originalAct = activities.find(a => a.id === act.id);
+      if (!originalAct) continue;
+      
+      const changedTime = finalStartTime !== safeOriginalTime(originalAct.startTime);
+      const isMoved = act.id === movedActivityId;
+
+      if (changedTime || isMoved) {
+        updatesToSave.push({
+          id: act.id,
+          startTime: new Date(finalStartTime).toISOString(),
+          trackId: act._trackId,
+          duration: act._duration
+        });
+      }
+    }
+    return updatesToSave;
+  };
+
+  const handleBulkUpdate = async (updates: any[]) => {
+    try {
+      await fetch('/api/activities/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activities: updates })
+      });
+      fetchData();
+    } catch (error) { console.error('Chyba bulk update:', error); }
+  };
+
   const onDragEnd = async (result: DragEndEvent) => {
     const { active, over } = result;
     setActiveId(null);
@@ -188,20 +299,20 @@ export default function Home() {
     const newStartTime = calculateTimeFromCoordinates(active.rect.current.translated.left, over.rect);
     if (!newStartTime) return;
 
-    try {
-      await fetch(`/api/activities/${activity.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          startTime: newStartTime.toISOString(),
-          trackId: targetTrack.id
-        })
-      });
-      fetchData();
-    } catch (error) { console.error('Chyba aktualizace:', error); }
+    const allActivities = [...(event.activities || []), ...event.tracks.flatMap(t => t.activities)];
+    const updates = applyRippleEffect(allActivities, activity.id, newStartTime, targetTrack.id, activity.duration);
+    handleBulkUpdate(updates);
   };
 
-  // (Helpery getPosition a getWidth byly přesunuty mimo komponentu)
+  const handleResizeEnd = async (activityId: string, newDuration: number) => {
+    if (!event) return;
+    const allActivities = [...(event.activities || []), ...event.tracks.flatMap(t => t.activities)];
+    const activity = allActivities.find(a => a.id === activityId);
+    if (!activity || !activity.startTime || !activity.trackId) return;
+
+    const updates = applyRippleEffect(allActivities, activity.id, new Date(activity.startTime), activity.trackId, newDuration);
+    handleBulkUpdate(updates);
+  };
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen bg-slate-50 font-sans">
@@ -260,16 +371,23 @@ export default function Home() {
               <div className="h-12 border-b border-gray-200 bg-white sticky top-0 z-20 flex">
                 <div className="w-40 border-r border-gray-200 shrink-0 bg-white"></div>
                 <div className="flex-1 flex relative">
-                  {[...Array(14)].map((_, i) => (
-                    <div key={i} className="w-[120px] border-r border-gray-100 text-[11px] text-gray-400 p-2 font-mono shrink-0">{8 + i}:00</div>
-                  ))}
+                  {[...Array(timelineHours)].map((_, i) => {
+                    const d = new Date(timelineStart.getTime() + i * 60 * 60 * 1000);
+                    const isNewDay = d.getHours() === 0 || i === 0;
+                    return (
+                      <div key={i} className="w-[120px] border-r border-gray-100 p-2 shrink-0 flex flex-col justify-end">
+                        {isNewDay && <div className="text-[10px] text-blue-600 font-bold leading-none mb-1">{d.toLocaleDateString('cs-CZ', { weekday: 'short', day: 'numeric', month: 'numeric' })}</div>}
+                        <div className="text-[11px] text-gray-400 font-mono leading-none">{d.getHours()}:00</div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
               <div className="flex-1 relative">
                 <div className="absolute inset-0 flex pointer-events-none">
                   <div className="w-40 border-r border-gray-200 shrink-0"></div>
-                  {[...Array(14)].map((_, i) => (<div key={i} className="w-[120px] border-r border-gray-100 shrink-0"></div>))}
+                  {[...Array(timelineHours)].map((_, i) => (<div key={i} className="w-[120px] border-r border-gray-100 shrink-0"></div>))}
                 </div>
 
                 {event?.tracks.map((track) => (
@@ -279,12 +397,14 @@ export default function Home() {
                         key={activity.id} 
                         activity={activity} 
                         trackColor={track.color || '#3B82F6'} 
-                        eventStartTime={event.startTime}
+                        timelineStart={timelineStart}
+                        onResizeEnd={handleResizeEnd}
                       />
                     ))}
                   </TrackDroppable>
                 ))}
               </div>
+
             </div>
           </div>
           <footer className="h-8 bg-white border-t border-gray-200 flex items-center px-4 justify-between text-[10px] text-gray-400 font-semibold shrink-0 uppercase tracking-widest">

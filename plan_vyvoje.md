@@ -26,7 +26,7 @@ Vzhledem k požadavkům na **Offline First**, **PWA** a náročnou interaktivitu
 Základní entity:
 *   **Event (Akce):** ID, název, start_time, end_time, metadata.
 *   **Track (Linka):** ID, event_id, název (např. "Vlčata"), barva.
-*   **Activity (Karta aktivity):** ID, track_id, název, start_time, duration, popis, url, metadata (kategorie).
+*   **Activity (Karta aktivity):** ID, track_id, název, start_time, duration, popis, url (odkaz na metodiku), metadata (kategorie, lektor/zodpovědná osoba).
 *   **Subtask (Checklist):** ID, activity_id, text, is_done.
 *   **AnchorPoint (Synchronizační bod):** ID, event_id, název, start_time (ovlivňuje všechny linky).
 
@@ -42,10 +42,20 @@ Základní entity:
 *   [x] API pro načítání akcí a aktivit.
 *   [x] Formulář pro přidávání aktivit do zásobníku.
 
-### Fáze 2: Inteligentní logika (Probíhá ⏳)
+### Fáze 2: Inteligentní logika a Administrace (Probíhá ⏳)
 *   [x] Implementace **Drag & Drop** (přesun ze zásobníku do timeline).
 *   [x] Implementace přesunu mezi paralelními linkami.
-*   [ ] **Vizuální zpětná vazba:** Dynamická šířka položky při přesunu (odpovídající trvání) a ukazatel cílového času.
+*   [x] **Vizuální zpětná vazba:** Dynamická šířka položky při přesunu a ukazatel cílového času.
+*   [ ] **Dashboard a správa akcí:**
+    *   Seznam všech akcí s možností vyhledávání.
+    *   Vytvoření nové akce (název, rozsah datumů).
+    *   Smazání akce a základní editace metadat.
+*   [ ] **Správa aktivit:**
+    *   **Detail aktivity (Modál):** Editace názvu, trvání, popisu, zodpovědné osoby a URL metodiky.
+    *   **Smazání aktivity:** Tlačítko pro odstranění z programu/zásobníku.
+    *   **Návrat do zásobníku:** Možnost "odepnout" aktivitu z timeline zpět mezi nepřiřazené.
+*   [ ] **Změna trvání aktivity (Resize):** Možnost natáhnout/zkrátit délku bloku tažením za jeho okraj.
+*   [ ] **Dynamický rozsah akce:** Generování časové osy na základě skutečného data od-do u samotné Akce.
 *   [ ] **Ripple Effect:** Automatický posun navazujících aktivit.
 *   [ ] **Smart Gaps:** Detekce děr a kontextové menu pro jejich vyplnění.
 *   [ ] **Anchor Points:** Hromadný posun všech linek.
