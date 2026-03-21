@@ -17,6 +17,7 @@ model Event {
   endTime     DateTime
   description String?
   tracks      Track[]
+  activities  Activity[]
   anchors     AnchorPoint[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -34,13 +35,15 @@ model Track {
 model Activity {
   id          String    @id @default(cuid())
   name        String
-  startTime   DateTime
+  startTime   DateTime? // Optional pro zásobník
   duration    Int       // v minutách
   description String?
   url         String?
   category    String?
-  track       Track     @relation(fields: [trackId], references: [id])
-  trackId     String
+  track       Track?    @relation(fields: [trackId], references: [id])
+  trackId     String?
+  event       Event     @relation(fields: [eventId], references: [id])
+  eventId     String
   subtasks    Subtask[]
 }
 
