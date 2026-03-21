@@ -1,37 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Skautský Plánovač Programu
 
-## Getting Started
+Webová a mobilní aplikace pro agilní plánování skautských akcí s podporou offline režimu (PWA).
 
-First, run the development server:
+## 🚀 Rychlý start (Docker)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Aplikace je plně kontejnerizovaná a připravená pro lokální vývoj.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. **Sestavení a spuštění:**
+   ```bash
+   docker-compose up --build
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2. **Inicializace databáze (uvnitř kontejneru):**
+   ```bash
+   docker-compose exec app npx prisma generate
+   docker-compose exec app npx prisma migrate dev --name init
+   docker-compose exec app npx tsx prisma/seed.ts
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. **Přístup:**
+   - Web: `http://localhost:3000`
+   - DB: `localhost:5432` (user: password, db: planaer_db)
 
-## Learn More
+## 🛠 Technologický Stack
 
-To learn more about Next.js, take a look at the following resources:
+- **Frontend:** Next.js 16 (App Router), TypeScript, Tailwind CSS
+- **Backend:** Next.js API Routes, Prisma ORM (v6.19.2)
+- **Databáze:** PostgreSQL (v15)
+- **Infrastruktura:** Docker, Railway.com (připraveno pro deployment)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📂 Struktura projektu
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `src/app`: Stránky a API routy (Next.js App Router)
+- `src/lib`: Sdílené utility (Prisma klient)
+- `src/types`: TypeScript rozhraní pro datový model
+- `prisma/`: Schéma databáze a seedovací skript
+- `doc/`: Původní zadání a analýza
 
-## Deploy on Vercel
+## ✅ Aktuální stav (MVP v1)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-"# planovacprogramu" 
+- [x] Základní UI (dvoupanelové zobrazení)
+- [x] Napojení na PostgreSQL přes Prisma
+- [x] API pro načítání akcí a přidávání aktivit
+- [x] Zásobník pro nepřiřazené aktivity
+- [ ] Drag & Drop (rozpracováno)
+- [ ] Ripple Effect (posun navazujících aktivit)
+- [ ] Offline podpora (PWA)

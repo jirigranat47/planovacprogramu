@@ -34,19 +34,23 @@ Základní entity:
 
 ## 3. Fáze vývoje (Roadmapa)
 
-### Fáze 1: Základní infrastruktura a MVP (Desktop)
-*   Nastavení Docker prostředí a Railway pipeline.
-*   Základní UI: Dvoupanelové zobrazení (zásobník vs. timeline).
-*   Implementace základní timeline s fixním gridem.
-*   Vytváření, editace a mazání aktivit.
+### Fáze 1: Základní infrastruktura a MVP (Hotovo ✅)
+*   [x] Nastavení Docker prostředí (PostgreSQL + Next.js).
+*   [x] Inicializace Next.js s TypeScriptem a Tailwind CSS.
+*   [x] Dvoupanelové UI (Zásobník vs. Timeline).
+*   [x] Napojení na PostgreSQL přes Prisma.
+*   [x] API pro načítání akcí a aktivit.
+*   [x] Formulář pro přidávání aktivit do zásobníku.
 
-### Fáze 2: Inteligentní logika (Smart Engine)
-*   Implementace **Drag & Drop** přesunů.
-*   **Ripple Effect:** Algoritmus pro posun navazujících aktivit při změně trvání.
-*   **Smart Gaps:** Detekce děr a kontextové menu pro jejich vyplnění.
-*   **Anchor Points:** Logika pro hromadný posun všech linek (jídlo, nástup).
+### Fáze 2: Inteligentní logika (Probíhá ⏳)
+*   [x] Implementace **Drag & Drop** (přesun ze zásobníku do timeline).
+*   [x] Implementace přesunu mezi paralelními linkami.
+*   [ ] **Vizuální zpětná vazba:** Dynamická šířka položky při přesunu (odpovídající trvání) a ukazatel cílového času.
+*   [ ] **Ripple Effect:** Automatický posun navazujících aktivit.
+*   [ ] **Smart Gaps:** Detekce děr a kontextové menu pro jejich vyplnění.
+*   [ ] **Anchor Points:** Hromadný posun všech linek.
 
-### Fáze 3: Mobilní verze a Offline (PWA)
+### Fáze 3: Mobilní verze a Offline (PWA) (Budoucí 🗓️)
 *   Optimalizace UI pro mobilní zařízení (Lite-edit mód).
 *   Implementace Service Workers pro offline přístup.
 *   Lokální ukládání změn do IndexedDB a následná synchronizace po návratu na signál.
