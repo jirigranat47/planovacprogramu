@@ -3,26 +3,43 @@ import { NextResponse } from 'next/server'
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params
     const body = await request.json()
-    const { startTime, trackId, duration } = body
-
-    const dataToUpdate: any = {}
-    if (startTime !== undefined) dataToUpdate.startTime = startTime ? new Date(startTime) : null
-    if (trackId !== undefined) dataToUpdate.trackId = trackId
-    if (duration !== undefined) dataToUpdate.duration = parseInt(duration)
+    const { startTime, trackId, duration, name, description, category } = body
 
     const updatedActivity = await prisma.activity.update({
       where: { id },
-      data: dataToUpdate
+      data: {
+        name,
+        description,
+        category,
+        startTime: startTime === null ? null : (startTime ? new Date(startTime) : undefined),
+        trackId: trackId === null ? null : (trackId || undefined),
+        duration: duration ? parseInt(duration) : undefined
+      }
     })
 
     return NextResponse.json(updatedActivity)
   } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json({ error: 'Failed to update activity' }, { status: 500 })
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    await prisma.subtask.deleteMany({ where: { activityId: id } })
+    await prisma.activity.delete({ where: { id } })
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('API Error:', error)
+    return NextResponse.json({ error: 'Failed to delete activity' }, { status: 500 })
   }
 }
