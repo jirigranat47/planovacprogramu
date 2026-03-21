@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  name        String
+  startTime   DateTime
+  endTime     DateTime
+  description String?
+  tracks      Track[]
+  anchors     AnchorPoint[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Track {
+  id         String     @id @default(cuid())
+  name       String
+  color      String?
+  event      Event      @relation(fields: [eventId], references: [id])
+  eventId    String
+  activities Activity[]
+}
+
+model Activity {
+  id          String    @id @default(cuid())
+  name        String
+  startTime   DateTime
+  duration    Int       // v minutách
+  description String?
+  url         String?
+  category    String?
+  track       Track     @relation(fields: [trackId], references: [id])
+  trackId     String
+  subtasks    Subtask[]
+}
+
+model Subtask {
+  id         String   @id @default(cuid())
+  text       String
+  isDone     Boolean  @default(false)
+  activity   Activity @relation(fields: [activityId], references: [id])
+  activityId String
+}
+
+model AnchorPoint {
+  id        String   @id @default(cuid())
+  name      String
+  startTime DateTime
+  event     Event    @relation(fields: [eventId], references: [id])
+  eventId   String
+}
