@@ -1,14 +1,43 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { auth } from '@/auth'
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const { id } = await params
     const body = await request.json()
-    const { startTime, trackId, duration, name, description, category, url, subtasks } = body
+    const { startTime, trackId, duration, name, description, category, url, subtasks, responsibleUserIds } = body
+
+    // Ověříme přístup k akci
+    const activity = await prisma.activity.findUnique({
+      where: { id },
+      select: { eventId: true }
+    })
+
+    if (!activity) {
+      return NextResponse.json({ error: 'Activity not found' }, { status: 404 })
+    }
+
+    const userAccess = await prisma.eventUser.findUnique({
+      where: {
+        eventId_userId: {
+          eventId: activity.eventId,
+          userId: session.user.id
+        }
+      }
+    })
+
+    if (!userAccess || userAccess.role === 'VIEWER') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     // Update activity and optionally subtasks
     const updatedActivity = await prisma.$transaction(async (tx) => {
@@ -21,7 +50,10 @@ export async function PATCH(
           url,
           startTime: startTime === null ? null : (startTime ? new Date(startTime) : undefined),
           trackId: trackId === null ? null : (trackId || undefined),
-          duration: duration ? parseInt(duration) : undefined
+          duration: duration ? parseInt(duration) : undefined,
+          responsibleUsers: responsibleUserIds ? {
+            set: responsibleUserIds.map((userId: string) => ({ id: userId }))
+          } : undefined
         }
       })
 
@@ -56,8 +88,36 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const { id } = await params
+
+    const activity = await prisma.activity.findUnique({
+      where: { id },
+      select: { eventId: true }
+    })
+
+    if (!activity) {
+      return NextResponse.json({ error: 'Activity not found' }, { status: 404 })
+    }
+
+    const userAccess = await prisma.eventUser.findUnique({
+      where: {
+        eventId_userId: {
+          eventId: activity.eventId,
+          userId: session.user.id
+        }
+      }
+    })
+
+    if (!userAccess || userAccess.role === 'VIEWER') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     await prisma.subtask.deleteMany({ where: { activityId: id } })
     await prisma.activity.delete({ where: { id } })
     return NextResponse.json({ success: true })

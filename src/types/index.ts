@@ -13,7 +13,19 @@ export interface Activity {
   url: string | null;
   category: string | null;
   trackId: string | null;
+  responsibleUserIds: string[];
   subtasks: Subtask[];
+}
+
+export interface EventUser {
+  id: string;
+  role: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    image: string | null;
+  }
 }
 
 export interface Track {

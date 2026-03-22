@@ -3,9 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Event } from '@/types';
+import { getSession, signOut } from 'next-auth/react';
 
 export default function Dashboard() {
   const [events, setEvents] = useState<Event[]>([]);
+  const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [newEvent, setNewEvent] = useState({
@@ -28,6 +30,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchEvents();
+    getSession().then(setSession);
   }, []);
 
   const handleCreateEvent = async (e: React.FormEvent) => {
@@ -71,17 +74,36 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50 p-8 font-sans">
       <div className="max-w-5xl mx-auto">
-        <header className="flex justify-between items-center mb-8">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Skautský Plánovač</h1>
             <p className="text-gray-500 mt-1 text-sm uppercase tracking-widest font-semibold">Dashboard akcí</p>
           </div>
-          <button 
-            onClick={() => setIsCreating(true)}
-            className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all hover:-translate-y-0.5"
-          >
-            + Nová akce
-          </button>
+          
+          <div className="flex items-center gap-6">
+            {session?.user && (
+              <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100">
+                {session.user.image ? (
+                  <img src={session.user.image} alt="Profil" className="w-8 h-8 rounded-full border border-gray-200" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
+                    {session.user.name?.charAt(0) || session.user.email?.charAt(0) || '?'}
+                  </div>
+                )}
+                <div>
+                  <div className="text-sm font-bold text-gray-800">{session.user.name || 'Uživatel'}</div>
+                  <button onClick={() => signOut({ callbackUrl: '/login' })} className="text-xs text-red-500 hover:text-red-700 font-medium transition-colors">Odhlásit se</button>
+                </div>
+              </div>
+            )}
+            
+            <button 
+              onClick={() => setIsCreating(true)}
+              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all hover:-translate-y-0.5"
+            >
+              + Nová akce
+            </button>
+          </div>
         </header>
 
         {isCreating && (
@@ -103,15 +125,32 @@ export default function Dashboard() {
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Začátek</label>
                 <input 
                   type="datetime-local" 
-                  className="w-full border border-gray-200 p-2.5 rounded-lg" 
+                  className="w-full border border-gray-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500" 
                   value={newEvent.startTime}
-                  onChange={e => setNewEvent({...newEvent, startTime: e.target.value})}
+                  onChange={e => {
+                    const start = e.target.value;
+                    // Automaticky posuneme konec na +10 hodin od začátku, pokud je po něm
+                    const startDate = new Date(start);
+                    const endDate = new Date(startDate.getTime() + 10 * 60 * 60 * 1000);
+                    const endStr = endDate.toISOString().slice(0, 16);
+                    setNewEvent({...newEvent, startTime: start, endTime: endStr});
+                  }}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Konec</label>
+                <input 
+                  type="datetime-local" 
+                  className="w-full border border-gray-200 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500" 
+                  value={newEvent.endTime}
+                  onChange={e => setNewEvent({...newEvent, endTime: e.target.value})}
                   required
                 />
               </div>
               <div className="flex gap-2">
-                <button type="submit" className="flex-1 bg-blue-600 text-white p-2.5 rounded-lg font-bold">Vytvořit</button>
-                <button type="button" onClick={() => setIsCreating(false)} className="px-4 bg-gray-100 text-gray-600 rounded-lg">Zrušit</button>
+                <button type="submit" className="flex-1 bg-blue-600 text-white p-2.5 rounded-lg font-bold shadow-md hover:bg-blue-700 transition-all">Vytvořit akci</button>
+                <button type="button" onClick={() => setIsCreating(false)} className="px-4 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors font-medium">Zrušit</button>
               </div>
             </form>
           </div>

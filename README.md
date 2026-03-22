@@ -11,11 +11,17 @@ Aplikace je plně kontejnerizovaná a připravená pro lokální vývoj.
    docker-compose up --build
    ```
 
-2. **Inicializace databáze (uvnitř kontejneru):**
+2. **Inicializace databáze (nutné při prvním spuštění):**
    ```bash
-   docker-compose exec app npx prisma generate
-   docker-compose exec app npx prisma migrate dev --name init
+   docker-compose exec app npx prisma db push
    docker-compose exec app npx tsx prisma/seed.ts
+   ```
+
+3. **Řešení potíží s Dockerem (pokud npm run dev v kontejneru hází chyby):**
+   Pokud jste přidávali nové balíčky a Docker je "nevidí", je potřeba smazat anonymní volumes pro `node_modules`:
+   ```bash
+   docker-compose down -v
+   docker-compose up --build
    ```
 
 3. **Přístup:**

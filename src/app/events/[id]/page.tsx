@@ -11,7 +11,7 @@ import {
   useSensors,
   DragOverlay
 } from '@dnd-kit/core';
-import { Event, Activity, Track } from '@/types';
+import { Event, Activity, Track, EventUser } from '@/types';
 import Link from 'next/link';
 
 
@@ -205,10 +205,12 @@ function TrackDroppable({ track, children }: { track: Track, children: React.Rea
 // --- Modální okno pro detail aktivity ---
 function ActivityDetailModal({ 
   activity, 
+  eventUsers,
   onClose, 
   onSave 
 }: { 
   activity: Activity, 
+  eventUsers: EventUser[],
   onClose: () => void, 
   onSave: (updates: any) => Promise<void> 
 }) {
@@ -217,6 +219,7 @@ function ActivityDetailModal({
     description: activity.description || '',
     category: activity.category || 'Program',
     url: activity.url || '',
+    responsibleUserIds: activity.responsibleUserIds || [],
     startTime: activity.startTime ? new Date(activity.startTime).toISOString().slice(0, 16) : '',
     duration: activity.duration,
     subtasks: activity.subtasks.map(st => ({ ...st }))
@@ -245,6 +248,7 @@ function ActivityDetailModal({
     try {
       await onSave({
         ...formData,
+        responsibleUserIds: formData.responsibleUserIds,
         startTime: formData.startTime || null
       });
       onClose();
@@ -284,6 +288,33 @@ function ActivityDetailModal({
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 ml-1">Zodpovědné osoby</label>
+              <div className="space-y-2 max-h-32 overflow-y-auto w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-blue-500 focus-within:bg-white transition-all text-sm font-semibold">
+                {eventUsers.length === 0 ? (
+                  <p className="text-gray-400 italic font-normal text-xs">Žádní spolupracovníci na akci.</p>
+                ) : eventUsers.map(eu => {
+                  const isChecked = formData.responsibleUserIds.includes(eu.user.id);
+                  return (
+                    <label key={eu.user.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-1 rounded transition-colors">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          const newIds = e.target.checked 
+                            ? [...formData.responsibleUserIds, eu.user.id]
+                            : formData.responsibleUserIds.filter(id => id !== eu.user.id);
+                          setFormData({ ...formData, responsibleUserIds: newIds });
+                        }}
+                      />
+                      <span className="text-gray-700">{eu.user.name || eu.user.email}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
 
             <div>
@@ -427,13 +458,90 @@ function ActivityDetailModal({
   );
 }
 
+// --- Modální okno pro nastavení akce (spolupracovníci) ---
+function EventSettingsModal({
+  event,
+  eventUsers,
+  onClose,
+  onAddUser,
+}: {
+  event: Event;
+  eventUsers: EventUser[];
+  onClose: () => void;
+  onAddUser: (email: string) => Promise<void>;
+}) {
+  const [email, setEmail] = useState('');
+  const [adding, setAdding] = useState(false);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    setAdding(true);
+    await onAddUser(email);
+    setEmail('');
+    setAdding(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl flex flex-col p-6 animate-in zoom-in-95 duration-200">
+        <header className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-gray-900">Nastavení akce</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
+        </header>
+
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-sm font-bold text-gray-700 mb-3">Spolupracovníci</h3>
+            <div className="space-y-2 mb-4">
+              {eventUsers.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">Zatím nejsou přiřazeni žádní spolupracovníci.</p>
+              ) : (
+                eventUsers.map(eu => (
+                  <div key={eu.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                    <div>
+                      <div className="text-sm font-semibold">{eu.user.name || 'Neznámý'}</div>
+                      <div className="text-xs text-gray-500">{eu.user.email}</div>
+                    </div>
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-bold">{eu.role}</span>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <form onSubmit={handleAdd} className="flex gap-2">
+              <input 
+                type="email" 
+                placeholder="Email uživatele..." 
+                className="flex-1 p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+              />
+              <button 
+                type="submit" 
+                disabled={adding}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50"
+              >
+                {adding ? '...' : 'Přidat'}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function EventPlanner({ params }: { params: Promise<{ id: string }> }) {
   const { id: eventId } = use(params);
   const [event, setEvent] = useState<Event | null>(null);
+  const [eventUsers, setEventUsers] = useState<EventUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dragTime, setDragTime] = useState<string | null>(null);
   const [isAddingActivity, setIsAddingActivity] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [newActivity, setNewActivity] = useState({ name: '', duration: 30, description: '', category: 'Program' });
 
@@ -452,10 +560,37 @@ export default function EventPlanner({ params }: { params: Promise<{ id: string 
       if (!res.ok) throw new Error('Failed to fetch event');
       const data = await res.json();
       setEvent(data);
+      
+      const usersRes = await fetch(`/api/events/${eventId}/users`);
+      if (usersRes.ok) {
+        const usersOnlyData = await usersRes.json();
+        setEventUsers(usersOnlyData);
+      }
     } catch (error) {
       console.error('Chyba při načítání dat:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddUser = async (email: string) => {
+    try {
+      const res = await fetch(`/api/events/${eventId}/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, role: 'EDITOR' })
+      });
+      if (res.ok) {
+          const usersRes = await fetch(`/api/events/${eventId}/users`);
+          if (usersRes.ok) {
+             setEventUsers(await usersRes.json());
+          }
+      } else {
+          const err = await res.json();
+          alert(err.error || 'Nastala chyba při přidávání uživatele.');
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -517,7 +652,7 @@ export default function EventPlanner({ params }: { params: Promise<{ id: string 
   // Pomocné proměnné pro mřížku
   const timelineStart = event ? (() => { const d = new Date(event.startTime); d.setMinutes(0, 0, 0); return d; })() : new Date();
   const timelineEnd = event ? (() => { const d = new Date(event.endTime); d.setMinutes(59, 59, 999); return d; })() : new Date();
-  const timelineHours = event ? Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60)) : 14;
+  const timelineHours = event ? Math.max(1, Math.ceil((timelineEnd.getTime() - timelineStart.getTime()) / (1000 * 60 * 60))) : 14;
 
   const calculateTimeFromCoordinates = (translatedLeft: number, overRect: any) => {
     if (!event) return null;
@@ -694,8 +829,8 @@ export default function EventPlanner({ params }: { params: Promise<{ id: string 
                <h1 className="text-xl font-bold text-gray-900">{event?.name}</h1>
             </div>
             <div className="flex gap-2">
-               <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm border">Nastavení akce</button>
-               <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-bold">Export PDF</button>
+               <button onClick={() => setIsSettingsOpen(true)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm border font-bold text-gray-700 shadow-sm transition-colors cursor-pointer">Nastavení akce</button>
+               <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-bold shadow-sm transition-colors cursor-pointer">Export PDF</button>
             </div>
           </header>
 
@@ -769,9 +904,19 @@ export default function EventPlanner({ params }: { params: Promise<{ id: string 
       </DragOverlay>
     </DndContext>
       
+      {isSettingsOpen && event && (
+        <EventSettingsModal 
+          event={event} 
+          eventUsers={eventUsers} 
+          onClose={() => setIsSettingsOpen(false)} 
+          onAddUser={handleAddUser} 
+        />
+      )}
+
       {editingActivity && (
         <ActivityDetailModal 
-          activity={editingActivity as Activity} 
+          activity={editingActivity as Activity}  
+          eventUsers={eventUsers}
           onClose={() => setEditingActivity(null)} 
           onSave={handleUpdateActivity}
         />

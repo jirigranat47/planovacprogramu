@@ -1,9 +1,23 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { auth } from '@/auth'
 
 export async function GET() {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
+    // Vrátíme pouze akce, kde je uživatel uveden jako spolupracovník/vlastník
     const events = await prisma.event.findMany({
+      where: {
+        users: {
+          some: {
+            userId: session.user.id
+          }
+        }
+      },
       orderBy: { startTime: 'desc' }
     })
     return NextResponse.json(events)
@@ -14,6 +28,11 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const body = await request.json()
     const { name, startTime, endTime } = body
@@ -29,6 +48,13 @@ export async function POST(request: Request) {
             { name: 'Skauti', color: '#10B981' },
             { name: 'Roveři', color: '#8B5CF6' }
           ]
+        },
+        // Automaticky přidáme tvůrce jako OWNERa
+        users: {
+          create: {
+            userId: session.user.id,
+            role: 'OWNER'
+          }
         }
       }
     })

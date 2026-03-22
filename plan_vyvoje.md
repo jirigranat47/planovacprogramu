@@ -66,13 +66,21 @@ Základní entity:
 *   [ ] **Smart Gaps & Filling:** Kontextové menu pro rychlé vyplnění děr v programu.
 *   [ ] **Anchor Points:** Globální synchronizační body pro hromadný posun linek.
 
-### Fáze 3: Mobilní verze a Offline (PWA) (Budoucí 🗓️)
+### Fáze 3: Autentizace a Kolaborace (Nové 🛡️)
+*   [ ] **NextAuth integrace:** Podpora pro Google Login a vlastní účty (Credentials).
+*   [ ] **Uživatelské profily:** Základní správa (jméno, email, avatar).
+*   [ ] **Systém práv k akcím:**
+    *   Možnost přidat uživatele k akci jako "Editora" nebo "Prohlížeče".
+    *   Řízení přístupu (Rbac) na úrovni API a UI.
+*   [ ] **Přiřazování osob:** Propojení uživatelů přidaných k akci s konkrétními aktivitami (Responsible Person).
+
+### Fáze 4: Mobilní verze a Offline (PWA) (Budoucí 🗓️)
 *   Optimalizace UI pro mobilní zařízení (Lite-edit mód).
 *   Implementace Service Workers pro offline přístup.
 *   Lokální ukládání změn do IndexedDB a následná synchronizace po návratu na signál.
 *   Interaktivní checklisty u aktivit.
 
-### Fáze 4: Export a Šablony
+### Fáze 5: Export a Šablony
 *   Generování PDF (A4 na šířku) - knihovna `react-pdf`.
 *   Export do obrázku pro sdílení na sociálních sítích.
 *   Systém šablon: Uložení existující akce jako vzoru a jeho import.
