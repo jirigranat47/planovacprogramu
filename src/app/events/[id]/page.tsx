@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, use } from 'react';
+import React, { useEffect, useState, use, useRef } from 'react';
 import { 
   DndContext, 
   DragEndEvent, 
@@ -42,17 +42,35 @@ const getPosition = (startTimeStr: string | null, timelineStart?: Date) => {
 const getWidth = (duration: number) => duration * 2;
 
 // --- Komponenta pro aktivitu na časové ose (Draggable) ---
-function TimelineActivity({ activity, trackColor, timelineStart, onResizeEnd, onMoveToPool, onDelete }: { activity: Activity, trackColor: string, timelineStart: Date, onResizeEnd: (id: string, newDuration: number) => void, onMoveToPool: (id: string) => void, onDelete: (id: string) => void }) {
+function TimelineActivity({ 
+  activity, 
+  trackColor, 
+  timelineStart, 
+  onResizeEnd, 
+  onMoveToPool, 
+  onDelete,
+  onEdit
+}: { 
+  activity: Activity, 
+  trackColor: string, 
+  timelineStart: Date, 
+  onResizeEnd: (id: string, newDuration: number) => void, 
+  onMoveToPool: (id: string) => void, 
+  onDelete: (id: string) => void,
+  onEdit: (activity: Activity) => void
+}) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: activity.id,
     data: { activity }
   });
 
   const [resizingWidth, setResizingWidth] = useState<number | null>(null);
+  const isResizingRef = useRef(false);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     e.stopPropagation(); // Zabránit dnd-kitu v převzetí události
     e.preventDefault();
+    isResizingRef.current = true;
     const startX = e.clientX;
     const startWidth = getWidth(activity.duration);
 
@@ -66,6 +84,12 @@ function TimelineActivity({ activity, trackColor, timelineStart, onResizeEnd, on
       const finalWidth = Math.max(10, startWidth + finalDeltaX);
       const newDuration = Math.round(finalWidth / 2);
       setResizingWidth(null);
+      
+      // Krátké zpoždění pro ignorování click události, která ihned následuje pointerup
+      setTimeout(() => {
+        isResizingRef.current = false;
+      }, 100);
+
       if (newDuration !== activity.duration) { 
         onResizeEnd(activity.id, newDuration);
       }
@@ -86,6 +110,13 @@ function TimelineActivity({ activity, trackColor, timelineStart, onResizeEnd, on
       ref={setNodeRef} 
       {...listeners} 
       {...attributes}
+      onClick={(e) => {
+        if (isResizingRef.current) {
+          e.stopPropagation();
+          return;
+        }
+        onEdit(activity);
+      }}
       className={`absolute bg-white border-l-4 rounded-r-lg p-3 shadow-sm border border-gray-200 overflow-hidden group/item transition-opacity ${isDragging ? 'opacity-20 z-0' : 'cursor-grab hover:shadow-md z-10 hover:z-30'}`}
       style={{ 
         left: `${getPosition(activity.startTime, timelineStart)}px`, 
@@ -118,20 +149,27 @@ function TimelineActivity({ activity, trackColor, timelineStart, onResizeEnd, on
       <div 
         className="absolute right-0 top-0 bottom-0 w-3 cursor-ew-resize hover:bg-blue-500/20 active:bg-blue-500/40 opacity-0 group-hover/item:opacity-100 transition-colors z-20 pointer-events-auto"
         onPointerDown={handlePointerDown}
+        onClick={(e) => e.stopPropagation()}
       />
     </div>
   );
 }
 
 // --- Komponenta pro aktivitu v zásobníku (Draggable) ---
-function DraggableActivity({ activity, onDelete }: { activity: Activity, onDelete: (id: string) => void }) {
+function DraggableActivity({ activity, onDelete, onEdit }: { activity: Activity, onDelete: (id: string) => void, onEdit: (a: Activity) => void }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: activity.id,
     data: { activity }
   });
 
   return (
-    <div ref={setNodeRef} {...listeners} {...attributes} className="relative group/poolitem">
+    <div 
+      ref={setNodeRef} 
+      {...listeners} 
+      {...attributes} 
+      onClick={() => onEdit(activity)}
+      className="relative group/poolitem"
+    >
       <ActivityCard activity={activity} isDragging={isDragging} />
       <button 
         onPointerDown={(e) => { e.stopPropagation(); onDelete(activity.id); }}
@@ -157,8 +195,233 @@ function TrackDroppable({ track, children }: { track: Track, children: React.Rea
       <div className="w-40 border-r border-gray-200 bg-white p-4 shrink-0 flex flex-col justify-center sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
         <span className="font-bold text-sm text-gray-700">{track.name}</span>
       </div>
-      <div className="flex-1 relative py-2 overflow-hidden">
+      <div className="flex-1 relative py-2">
         {children}
+      </div>
+    </div>
+  );
+}
+
+// --- Modální okno pro detail aktivity ---
+function ActivityDetailModal({ 
+  activity, 
+  onClose, 
+  onSave 
+}: { 
+  activity: Activity, 
+  onClose: () => void, 
+  onSave: (updates: any) => Promise<void> 
+}) {
+  const [formData, setFormData] = useState({
+    name: activity.name,
+    description: activity.description || '',
+    category: activity.category || 'Program',
+    url: activity.url || '',
+    startTime: activity.startTime ? new Date(activity.startTime).toISOString().slice(0, 16) : '',
+    duration: activity.duration,
+    subtasks: activity.subtasks.map(st => ({ ...st }))
+  });
+
+  const [saving, setSaving] = useState(false);
+
+  // Výpočet času "Do" pro UI
+  const getEndTime = () => {
+    if (!formData.startTime) return '';
+    const start = new Date(formData.startTime);
+    const end = new Date(start.getTime() + formData.duration * 60000);
+    return end.toISOString().slice(0, 16);
+  };
+
+  const handleEndTimeChange = (newEndStr: string) => {
+    if (!formData.startTime || !newEndStr) return;
+    const start = new Date(formData.startTime);
+    const end = new Date(newEndStr);
+    const diffMin = Math.round((end.getTime() - start.getTime()) / 60000);
+    setFormData({ ...formData, duration: Math.max(1, diffMin) });
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave({
+        ...formData,
+        startTime: formData.startTime || null
+      });
+      onClose();
+    } catch (error) {
+      console.error('Error saving activity:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addSubtask = () => {
+    setFormData({
+      ...formData,
+      subtasks: [...formData.subtasks, { id: 'temp-' + Date.now(), text: '', isDone: false }]
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
+        <header className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Detail aktivity</h2>
+            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-0.5">Editace parametrů a checklistu</p>
+          </div>
+          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors text-gray-400 hover:text-gray-600">✕</button>
+        </header>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Základní info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 ml-1">Název aktivity</label>
+              <input 
+                type="text" 
+                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-sm font-semibold"
+                value={formData.name}
+                onChange={e => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 ml-1">Kategorie</label>
+              <select 
+                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-sm font-semibold"
+                value={formData.category}
+                onChange={e => setFormData({ ...formData, category: e.target.value })}
+              >
+                <option>Program</option>
+                <option>Strava</option>
+                <option>Přesun</option>
+                <option>Ostatní</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 ml-1">URL Metodiky</label>
+              <input 
+                type="text" 
+                placeholder="https://..."
+                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-sm font-semibold"
+                value={formData.url}
+                onChange={e => setFormData({ ...formData, url: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <hr className="border-gray-100" />
+
+          {/* Časování */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 ml-1 text-blue-600">Čas od (Začátek)</label>
+              <input 
+                type="datetime-local" 
+                disabled={!activity.startTime}
+                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-sm font-semibold disabled:opacity-50"
+                value={formData.startTime}
+                onChange={e => setFormData({ ...formData, startTime: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 ml-1 text-red-600">Čas do (Konec)</label>
+              <input 
+                type="datetime-local" 
+                disabled={!activity.startTime}
+                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-sm font-semibold disabled:opacity-50"
+                value={getEndTime()}
+                onChange={e => handleEndTimeChange(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 ml-1">Trvání (minut)</label>
+              <input 
+                type="number" 
+                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-sm font-semibold"
+                value={formData.duration}
+                onChange={e => setFormData({ ...formData, duration: parseInt(e.target.value) || 0 })}
+              />
+            </div>
+          </div>
+
+          <hr className="border-gray-100" />
+
+          {/* Popis */}
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 ml-1">Popis aktivity</label>
+            <textarea 
+              rows={3}
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-sm"
+              value={formData.description}
+              onChange={e => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Podrobnosti o hře, potřebné vybavení..."
+            />
+          </div>
+
+          {/* Subtasks */}
+          <div>
+            <div className="flex justify-between items-center mb-3">
+              <label className="block text-xs font-bold text-gray-500 uppercase ml-1">Checklist (Sub-úkoly)</label>
+              <button 
+                type="button" 
+                onClick={addSubtask}
+                className="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-md font-bold hover:bg-blue-100 transition-colors"
+              >+ Přidat úkol</button>
+            </div>
+            <div className="space-y-2">
+              {formData.subtasks.map((st, idx) => (
+                <div key={st.id} className="flex gap-2 items-center animate-in slide-in-from-left-2 duration-200">
+                  <input 
+                    type="checkbox" 
+                    checked={st.isDone} 
+                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    onChange={e => {
+                      const newST = [...formData.subtasks];
+                      newST[idx].isDone = e.target.checked;
+                      setFormData({ ...formData, subtasks: newST });
+                    }}
+                  />
+                  <input 
+                    type="text" 
+                    className="flex-1 p-2 bg-gray-50 border border-transparent border-b-gray-200 hover:border-b-blue-300 focus:border-b-blue-500 transition-all text-sm outline-none"
+                    value={st.text}
+                    placeholder="Např. Připravit lana..."
+                    onChange={e => {
+                      const newST = [...formData.subtasks];
+                      newST[idx].text = e.target.value;
+                      setFormData({ ...formData, subtasks: newST });
+                    }}
+                  />
+                  <button 
+                    onClick={() => {
+                      setFormData({ ...formData, subtasks: formData.subtasks.filter((_, i) => i !== idx) });
+                    }}
+                    className="text-gray-300 hover:text-red-500 p-1"
+                  >✕</button>
+                </div>
+              ))}
+              {formData.subtasks.length === 0 && <p className="text-[11px] text-gray-400 italic text-center py-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">Žádné úkoly k této aktivitě.</p>}
+            </div>
+          </div>
+        </div>
+
+        <footer className="p-6 border-t border-gray-100 bg-gray-50/50 flex gap-3">
+          <button 
+            onClick={handleSave}
+            disabled={saving}
+            className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center gap-2"
+          >
+            {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'Uložit změny'}
+          </button>
+          <button 
+            disabled={saving}
+            onClick={onClose} 
+            className="px-6 py-3 bg-white border border-gray-200 text-gray-600 rounded-xl font-bold hover:bg-gray-50 transition-colors"
+          >Zrušit</button>
+        </footer>
       </div>
     </div>
   );
@@ -171,6 +434,7 @@ export default function EventPlanner({ params }: { params: Promise<{ id: string 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dragTime, setDragTime] = useState<string | null>(null);
   const [isAddingActivity, setIsAddingActivity] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [newActivity, setNewActivity] = useState({ name: '', duration: 30, description: '', category: 'Program' });
 
   // Konfigurace senzorů pro DND
@@ -233,6 +497,20 @@ export default function EventPlanner({ params }: { params: Promise<{ id: string 
       const res = await fetch(`/api/activities/${activityId}`, { method: 'DELETE' });
       if (res.ok) fetchData();
     } catch (error) { console.error('Chyba při mazání:', error); }
+  };
+
+  const handleUpdateActivity = async (updates: any) => {
+    if (!editingActivity) return;
+    try {
+      const res = await fetch(`/api/activities/${editingActivity.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      if (res.ok) {
+        fetchData();
+      }
+    } catch (error) { console.error('Chyba při aktualizaci:', error); }
   };
 
 
@@ -374,6 +652,7 @@ export default function EventPlanner({ params }: { params: Promise<{ id: string 
   );
 
   return (
+    <>
     <DndContext sensors={sensors} onDragStart={({active}) => setActiveId(active.id as string)} onDragMove={handleDragMove} onDragEnd={onDragEnd} onDragCancel={() => { setActiveId(null); setDragTime(null); }}>
       <div className="flex h-screen bg-gray-100 overflow-hidden font-sans">
         {/* --- Zásobník --- */}
@@ -385,7 +664,12 @@ export default function EventPlanner({ params }: { params: Promise<{ id: string 
           
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {event?.activities?.map((activity) => (
-              <DraggableActivity key={activity.id} activity={activity} onDelete={handleDeleteActivity} />
+              <DraggableActivity 
+                key={activity.id} 
+                activity={activity} 
+                onDelete={handleDeleteActivity} 
+                onEdit={(a) => setEditingActivity(a)}
+              />
             ))}
             {isAddingActivity && (
               <form onSubmit={handleAddActivity} className="p-4 bg-slate-50 border border-blue-200 rounded-lg space-y-3 shadow-inner">
@@ -450,6 +734,7 @@ export default function EventPlanner({ params }: { params: Promise<{ id: string 
                         onResizeEnd={handleResizeEnd}
                         onMoveToPool={handleMoveToPool}
                         onDelete={handleDeleteActivity}
+                        onEdit={(a) => setEditingActivity(a)}
                       />
                     ))}
                   </TrackDroppable>
@@ -483,5 +768,14 @@ export default function EventPlanner({ params }: { params: Promise<{ id: string 
         })() : null}
       </DragOverlay>
     </DndContext>
+      
+      {editingActivity && (
+        <ActivityDetailModal 
+          activity={editingActivity as Activity} 
+          onClose={() => setEditingActivity(null)} 
+          onSave={handleUpdateActivity}
+        />
+      )}
+    </>
   );
 }

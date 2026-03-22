@@ -43,22 +43,28 @@ Základní entity:
 *   [x] Formulář pro přidávání aktivit do zásobníku.
 
 ### Fáze 2: Inteligentní logika a Administrace (Probíhá ⏳)
-*   [x] Implementace **Drag & Drop** (přesun ze zásobníku do timeline).
-*   [x] Implementace přesunu mezi paralelními linkami.
-*   [x] **Vizuální zpětná vazba:** Dynamická šířka položky při přesunu a ukazatel cílového času.
-*   [ ] **Dashboard a správa akcí:**
-    *   Seznam všech akcí s možností vyhledávání.
-    *   Vytvoření nové akce (název, rozsah datumů).
-    *   Smazání akce a základní editace metadat.
-*   [ ] **Správa aktivit:**
-    *   **Detail aktivity (Modál):** Editace názvu, trvání, popisu, zodpovědné osoby a URL metodiky.
-    *   **Smazání aktivity:** Tlačítko pro odstranění z programu/zásobníku.
-    *   **Návrat do zásobníku:** Možnost "odepnout" aktivitu z timeline zpět mezi nepřiřazené.
-*   [ ] **Změna trvání aktivity (Resize):** Možnost natáhnout/zkrátit délku bloku tažením za jeho okraj.
-*   [ ] **Dynamický rozsah akce:** Generování časové osy na základě skutečného data od-do u samotné Akce.
-*   [ ] **Ripple Effect:** Automatický posun navazujících aktivit.
-*   [ ] **Smart Gaps:** Detekce děr a kontextové menu pro jejich vyplnění.
-*   [ ] **Anchor Points:** Hromadný posun všech linek.
+*   [x] **Základní D&D:** Přesun ze zásobníku do timeline a mezi linkami.
+*   [x] **Resize:** Možnost natáhnout/zkrátit délku bloku tažením za okraj.
+*   [x] **Ripple Effect:** Automatický posun navazujících aktivit při změně času/trvání.
+*   [x] **Vizuální zpětná vazba:** Ukazatel cílového času při přetahování.
+*   [ ] **Detailní správa aktivit (Modální okno):**
+    *   **Editace textů:** Změna názvu a podrobného popisu aktivity.
+    *   **Časové určení:** Možnost zadat přesný čas "Od" a "Do" (automatický přepočet trvání).
+    *   **Metadata:** Výběr kategorie (Program, Strava, Přesun...), zodpovědná osoba, URL odkaz na metodiku.
+    *   **Checklist:** Přidávání a odškrtávání podúkolů přímo v detailu aktivity.
+*   [ ] **Správa linek (Tracks):**
+    *   **Přidávání/Odebírání:** Tlačítka pro správu paralelních programových proudů.
+    *   **Editace linek:** Přejmenování linky a změna její unikátní barvy.
+    *   **Řazení linek:** Možnost měnit vertikální pořadí linek na timeline.
+*   [ ] **Nastavení akce (Event Settings):**
+    *   **Globální parametry:** Změna názvu akce, úprava celkového časového rozsahu (start/end date).
+    *   **Generování mřížky:** Dynamické překreslení timeline při změně datumu akce.
+*   [ ] **Dashboard v2:**
+    *   Vyhledávání a filtrace v seznamu akcí.
+    *   **Duplikace:** Vytvoření nové akce na základě existující (kopírování struktury a linek).
+    *   Archivace starých akcí.
+*   [ ] **Smart Gaps & Filling:** Kontextové menu pro rychlé vyplnění děr v programu.
+*   [ ] **Anchor Points:** Globální synchronizační body pro hromadný posun linek.
 
 ### Fáze 3: Mobilní verze a Offline (PWA) (Budoucí 🗓️)
 *   Optimalizace UI pro mobilní zařízení (Lite-edit mód).
