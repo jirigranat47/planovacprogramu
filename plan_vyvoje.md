@@ -66,13 +66,14 @@ Základní entity:
 *   [ ] **Smart Gaps & Filling:** Kontextové menu pro rychlé vyplnění děr v programu.
 *   [ ] **Anchor Points:** Globální synchronizační body pro hromadný posun linek.
 
-### Fáze 3: Autentizace a Kolaborace (Nové 🛡️)
-*   [ ] **NextAuth integrace:** Podpora pro Google Login a vlastní účty (Credentials).
-*   [ ] **Uživatelské profily:** Základní správa (jméno, email, avatar).
-*   [ ] **Systém práv k akcím:**
-    *   Možnost přidat uživatele k akci jako "Editora" nebo "Prohlížeče".
-    *   Řízení přístupu (Rbac) na úrovni API a UI.
-*   [ ] **Přiřazování osob:** Propojení uživatelů přidaných k akci s konkrétními aktivitami (Responsible Person).
+### Fáze 3: Autentizace a Kolaborace (Hotovo 🛡️)
+*   [x] **NextAuth integrace:** Podpora pro Google Login a vlastní účty (Credentials).
+*   [x] **Uživatelské profily:** Základní správa (jméno, email, avatar) a widget na dashboardu.
+*   [x] **Systém práv k akcím:**
+    *   [x] Implementace Middleware pro ochranu stránek.
+    *   [x] Izolace dat v API (uživatel vidí jen své akce).
+    *   [x] Role OWNER/EDITOR/VIEWER.
+*   [x] **Přiřazování osob:** Propojení uživatelů přidaných k akci s konkrétními aktivitami (Responsible Person - podpora více lidí).
 
 ### Fáze 4: Mobilní verze a Offline (PWA) (Budoucí 🗓️)
 *   Optimalizace UI pro mobilní zařízení (Lite-edit mód).
