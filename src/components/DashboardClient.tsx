@@ -123,7 +123,13 @@ export default function DashboardClient({ session }: { session: any }) {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      session.user.name?.charAt(0) || session.user.email?.charAt(0) || '?'
+                      (session.user.name || session.user.email || '?')
+                        .split(' ')
+                        .filter(Boolean)
+                        .map((n: string) => n[0])
+                        .join('')
+                        .slice(0, 2)
+                        .toUpperCase()
                     )}
                   </div>
                   <div>
@@ -275,16 +281,40 @@ export default function DashboardClient({ session }: { session: any }) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-sm text-gray-400 mb-8 font-bold">
-                   <div className="flex flex-col">
-                      <span className="text-[10px] uppercase tracking-tighter text-gray-300">Od</span>
-                      <span className="text-gray-900">{new Date(event.startTime).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short' })}</span>
-                   </div>
-                   <div className="h-4 w-px bg-gray-100"></div>
-                   <div className="flex flex-col">
-                      <span className="text-[10px] uppercase tracking-tighter text-gray-300">Do</span>
-                      <span className="text-gray-900">{new Date(event.endTime).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short' })}</span>
-                   </div>
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3 text-sm text-gray-400 font-bold">
+                    <div className="flex flex-col">
+                        <span className="text-[10px] uppercase tracking-tighter text-gray-300">Od</span>
+                        <span className="text-gray-900">{new Date(event.startTime).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short' })}</span>
+                    </div>
+                    <div className="h-4 w-px bg-gray-100"></div>
+                    <div className="flex flex-col">
+                        <span className="text-[10px] uppercase tracking-tighter text-gray-300">Do</span>
+                        <span className="text-gray-900">{new Date(event.endTime).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short' })}</span>
+                    </div>
+                  </div>
+
+                  {/* Skupina spolupracovníků */}
+                  <div className="flex -space-x-2 overflow-hidden">
+                    {event.users?.map((eu: any) => {
+                      const name = eu.user.name || eu.user.email || '?';
+                      const initials = name.split(' ').filter(Boolean).map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+                      
+                      return (
+                        <div 
+                          key={eu.id} 
+                          title={name}
+                          className="h-8 w-8 rounded-full ring-2 ring-white bg-gray-100 flex items-center justify-center text-[16px] font-black overflow-hidden shadow-sm shrink-0"
+                        >
+                          {eu.user.image ? (
+                            <img src={eu.user.image} alt={name} className="h-full w-full object-cover" />
+                          ) : (
+                            <span className="text-gray-500">{initials}</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="mt-auto pt-4 flex gap-2">

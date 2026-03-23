@@ -62,6 +62,7 @@ Základní entity:
 *   [ ] **Dashboard v2:**
     *   Vyhledávání a filtrace v seznamu akcí.
     *   **Duplikace:** Vytvoření nové akce na základě existující (kopírování struktury a linek).
+    *   **Vizualizace spolupracovníků:** Zobrazení seznamu lidí (vlastník + editoři) na kartě akce ve formě avatarů s tooltipem jména.
     *   Archivace starých akcí.
 *   [ ] **Smart Gaps & Filling:** Kontextové menu pro rychlé vyplnění děr v programu.
 *   [ ] **Anchor Points:** Globální synchronizační body pro hromadný posun linek.
