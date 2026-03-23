@@ -49,6 +49,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session.user && token.sub) {
         session.user.id = token.sub
       }
+      console.log("SERVER: Vygenerována session pro:", session.user?.email || "nepřihlášen")
       return session
     }
   }
