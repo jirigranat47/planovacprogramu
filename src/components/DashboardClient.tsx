@@ -304,12 +304,12 @@ export default function DashboardClient({ session }: { session: any }) {
                         <div 
                           key={eu.id} 
                           title={name}
-                          className="h-8 w-8 rounded-full ring-2 ring-white bg-gray-100 flex items-center justify-center text-[16px] font-black overflow-hidden shadow-sm shrink-0"
+                          className={`h-8 w-8 rounded-full ring-2 ring-white bg-gray-100 flex items-center justify-center text-[16px] font-black overflow-hidden shadow-sm shrink-0 ${!eu.user.image ? 'text-gray-500' : ''}`}
                         >
                           {eu.user.image ? (
                             <img src={eu.user.image} alt={name} className="h-full w-full object-cover" />
                           ) : (
-                            <span className="text-gray-500">{initials}</span>
+                            initials
                           )}
                         </div>
                       );

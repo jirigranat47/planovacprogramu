@@ -36,10 +36,10 @@ const getPosition = (startTimeStr: string | null, timelineStart?: Date) => {
   if (!startTimeStr || !timelineStart) return 0;
   const date = new Date(startTimeStr);
   const diffInMinutes = (date.getTime() - timelineStart.getTime()) / 60000;
-  return Math.max(0, diffInMinutes * 2); // 2px = 1min
+  return Math.max(0, diffInMinutes * 3); // 3px = 1min
 };
 
-const getWidth = (duration: number) => duration * 2;
+const getWidth = (duration: number) => duration * 3;
 
 // --- Komponenta pro aktivitu na časové ose (Draggable) ---
 function TimelineActivity({ 
@@ -76,13 +76,13 @@ function TimelineActivity({
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
       const deltaX = moveEvent.clientX - startX;
-      setResizingWidth(Math.max(10, startWidth + deltaX)); // min 5 minutes (10px)
+      setResizingWidth(Math.max(15, startWidth + deltaX)); // min 5 minutes (15px)
     };
 
     const handlePointerUp = (upEvent: PointerEvent) => {
       const finalDeltaX = upEvent.clientX - startX;
-      const finalWidth = Math.max(10, startWidth + finalDeltaX);
-      const newDuration = Math.round(finalWidth / 2);
+      const finalWidth = Math.max(15, startWidth + finalDeltaX);
+      const newDuration = Math.round(finalWidth / 3);
       setResizingWidth(null);
       
       // Krátké zpoždění pro ignorování click události, která ihned následuje pointerup
@@ -103,7 +103,7 @@ function TimelineActivity({
   };
 
   const currentWidth = resizingWidth !== null ? resizingWidth : getWidth(activity.duration);
-  const currentDuration = resizingWidth !== null ? Math.round(resizingWidth / 2) : activity.duration;
+  const currentDuration = resizingWidth !== null ? Math.round(resizingWidth / 3) : activity.duration;
 
   return (
     <div 
@@ -799,7 +799,7 @@ export default function EventPlanner({ params }: { params: Promise<{ id: string 
     if (!event) return null;
     const timelineStartX = overRect.left + 160;
     const pixelsFromStart = translatedLeft - timelineStartX;
-    const minutesOffset = pixelsFromStart / 2;
+    const minutesOffset = pixelsFromStart / 3;
     return new Date(timelineStart.getTime() + minutesOffset * 60000);
   };
 
@@ -976,7 +976,10 @@ export default function EventPlanner({ params }: { params: Promise<{ id: string 
           </header>
 
           <div className="flex-1 overflow-auto relative bg-slate-50">
-            <div className="min-w-[1500px] h-full flex flex-col">
+            <div 
+              className="h-full flex flex-col" 
+              style={{ width: `${160 + timelineHours * 180}px` }}
+            >
               <div className="h-12 border-b border-gray-200 bg-white sticky top-0 z-20 flex">
                 <div className="w-40 border-r border-gray-200 shrink-0 bg-white"></div>
                 <div className="flex-1 flex relative">
@@ -984,7 +987,7 @@ export default function EventPlanner({ params }: { params: Promise<{ id: string 
                     const d = new Date(timelineStart.getTime() + i * 60 * 60 * 1000);
                     const isNewDay = d.getHours() === 0 || i === 0;
                     return (
-                      <div key={i} className="w-[120px] border-r border-gray-100 p-2 shrink-0 flex flex-col justify-end">
+                      <div key={i} className="w-[180px] border-r border-gray-100 p-2 shrink-0 flex flex-col justify-end">
                         {isNewDay && <div className="text-[10px] text-blue-600 font-bold leading-none mb-1">{d.toLocaleDateString('cs-CZ', { weekday: 'short', day: 'numeric', month: 'numeric' })}</div>}
                         <div className="text-[11px] text-gray-400 font-mono leading-none">{d.getHours()}:00</div>
                       </div>
@@ -996,7 +999,7 @@ export default function EventPlanner({ params }: { params: Promise<{ id: string 
               <div className="flex-1 relative">
                 <div className="absolute inset-0 flex pointer-events-none">
                   <div className="w-40 border-r border-gray-200 shrink-0"></div>
-                  {[...Array(timelineHours)].map((_, i) => (<div key={i} className="w-[120px] border-r border-gray-100 shrink-0"></div>))}
+                  {[...Array(timelineHours)].map((_, i) => (<div key={i} className="w-[180px] border-r border-gray-100 shrink-0"></div>))}
                 </div>
 
                 {event?.tracks.map((track) => (
