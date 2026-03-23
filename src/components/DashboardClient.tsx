@@ -115,8 +115,16 @@ export default function DashboardClient({ session }: { session: any }) {
             <div className="flex items-center gap-4 w-full md:w-auto">
               {session?.user && (
                 <div className="hidden lg:flex items-center gap-3 bg-white px-4 py-2.5 rounded-2xl shadow-sm border border-gray-100">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-400 flex items-center justify-center text-white font-bold text-sm shadow-md">
-                    {session.user.name?.charAt(0) || session.user.email?.charAt(0) || '?'}
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-400 flex items-center justify-center text-white font-bold text-sm shadow-md overflow-hidden">
+                    {session.user.image ? (
+                      <img 
+                        src={session.user.image} 
+                        alt={session.user.name || 'Avatar'} 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      session.user.name?.charAt(0) || session.user.email?.charAt(0) || '?'
+                    )}
                   </div>
                   <div>
                     <div className="text-sm font-bold text-gray-800 leading-tight">{session.user.name || 'Uživatel'}</div>
