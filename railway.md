@@ -17,6 +17,7 @@ V nastavení projektu na Railway (Variable tab) je nutné nakonfigurovat tyto pr
 | :--- | :--- |
 | `DATABASE_URL` | Připojovací řetězec k PostgreSQL (Railway ho vygeneruje automaticky po přidání Database pluginu) |
 | `AUTH_SECRET` | Libovolný tajný řetězec pro šifrování session (vygenerujte např. přes `openssl rand -base64 32`) |
+| `AUTH_TRUST_HOST` | Nastavte na `true` (nutné pro běh na Railway, aby NextAuth věřil lokální hostitelské adrese) |
 | `GOOGLE_CLIENT_ID` | Získané z Google Cloud Console |
 | `GOOGLE_CLIENT_SECRET` | Získané z Google Cloud Console |
 | `NEXTAUTH_URL` | Veřejná URL vaší aplikace na Railway (např. `https://skaut-planovac.up.railway.app`) |

@@ -467,6 +467,7 @@ function EventSettingsModal({
   onAddTrack,
   onUpdateTrack,
   onDeleteTrack,
+  onUpdateEvent,
 }: {
   event: Event;
   eventUsers: EventUser[];
@@ -475,9 +476,14 @@ function EventSettingsModal({
   onAddTrack: () => Promise<void>;
   onUpdateTrack: (trackId: string, updates: any) => Promise<void>;
   onDeleteTrack: (trackId: string) => Promise<void>;
+  onUpdateEvent: (updates: any) => Promise<void>;
 }) {
   const [email, setEmail] = useState('');
   const [adding, setAdding] = useState(false);
+  const [eventName, setEventName] = useState(event.name);
+  const [startTime, setStartTime] = useState(new Date(event.startTime).toISOString().slice(0, 16));
+  const [endTime, setEndTime] = useState(new Date(event.endTime).toISOString().slice(0, 16));
+
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -496,9 +502,53 @@ function EventSettingsModal({
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
         </header>
 
-        <div className="space-y-6">
+        <div className="space-y-6 overflow-y-auto pr-1">
+          {/* --- Sekce pro Základní info --- */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Základní nastavení</h3>
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Název akce</label>
+              <input 
+                type="text" 
+                value={eventName}
+                onBlur={() => onUpdateEvent({ name: eventName })}
+                onChange={e => setEventName(e.target.value)}
+                className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Začátek</label>
+                <input 
+                  type="datetime-local" 
+                  value={startTime}
+                  onChange={e => {
+                    setStartTime(e.target.value);
+                    onUpdateEvent({ startTime: e.target.value });
+                  }}
+                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Konec</label>
+                <input 
+                  type="datetime-local" 
+                  value={endTime}
+                  onChange={e => {
+                    setEndTime(e.target.value);
+                    onUpdateEvent({ endTime: e.target.value });
+                  }}
+                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          <hr className="border-gray-100" />
+
+          {/* --- Sekce pro Spolupracovníky --- */}
           <div>
-            <h3 className="text-sm font-bold text-gray-700 mb-3">Spolupracovníci</h3>
+            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Spolupracovníci</h3>
             <div className="space-y-2 mb-4">
               {eventUsers.length === 0 ? (
                 <p className="text-sm text-gray-500 italic">Zatím nejsou přiřazeni žádní spolupracovníci.</p>
@@ -533,6 +583,8 @@ function EventSettingsModal({
               </button>
             </form>
           </div>
+
+          <hr className="border-gray-100" />
 
           {/* --- Sekce pro Správu linek (Tracks) --- */}
           <div>
@@ -664,6 +716,23 @@ export default function EventPlanner({ params }: { params: Promise<{ id: string 
       const res = await fetch(`/api/tracks/${trackId}`, { method: 'DELETE' });
       if (res.ok) fetchData();
     } catch (e) { console.error(e); }
+  };
+
+  const handleUpdateEvent = async (updates: any) => {
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      if (res.ok) {
+        // Optimisticky aktualizujeme lokální stav
+        const updated = await res.json();
+        setEvent(prev => prev ? { ...prev, ...updates } : null);
+        // Pokud se měnily časy, musíme fetchData pro korektní mřížku
+        if (updates.startTime || updates.endTime) fetchData();
+      }
+    } catch (e) { console.error('Chyba při aktualizaci akce:', e); }
   };
 
   useEffect(() => { 
@@ -985,6 +1054,7 @@ export default function EventPlanner({ params }: { params: Promise<{ id: string 
           onAddTrack={handleAddTrack}
           onUpdateTrack={handleUpdateTrack}
           onDeleteTrack={handleDeleteTrack}
+          onUpdateEvent={handleUpdateEvent}
         />
       )}
 

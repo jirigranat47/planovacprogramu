@@ -41,7 +41,8 @@ yarn-error.log*
 pgdata/
 
 # Prisma
-/prisma/migrations/
+# /prisma/migrations/ - Migrace musí být v Gitu pro Railway
+
 /prisma/*.db
 /prisma/*.db-journal
 

@@ -106,3 +106,47 @@ export async function DELETE(
     return NextResponse.json({ error: 'Failed to delete event' }, { status: 500 })
   }
 }
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const { id } = await params;
+    const { name, startTime, endTime, isArchived } = await request.json();
+
+    // Ověřit oprávnění
+    const userAccess = await prisma.eventUser.findUnique({
+      where: {
+        eventId_userId: {
+          eventId: id,
+          userId: session.user.id
+        }
+      }
+    })
+
+    if (!userAccess || userAccess.role === 'VIEWER') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const updatedEvent = await prisma.event.update({
+      where: { id },
+      data: {
+        name,
+        isArchived: typeof isArchived === 'boolean' ? isArchived : undefined,
+        startTime: startTime ? new Date(startTime) : undefined,
+        endTime: endTime ? new Date(endTime) : undefined,
+      }
+    })
+
+    return NextResponse.json(updatedEvent)
+  } catch (error) {
+    console.error('API Error:', error)
+    return NextResponse.json({ error: 'Failed to update event' }, { status: 500 })
+  }
+}

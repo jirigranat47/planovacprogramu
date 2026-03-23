@@ -20,6 +20,7 @@ model Event {
   activities  Activity[]
   anchors     AnchorPoint[]
   users       EventUser[]
+  isArchived  Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
