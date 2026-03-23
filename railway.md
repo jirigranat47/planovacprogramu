@@ -32,7 +32,7 @@ Odteď budeme postupovat takto:
 
 1. **Lokální vývoj:** Když změníte `schema.prisma`, místo `db push` použijte:
    ```bash
-   npx prisma migrate dev --name <popis_zmeny>
+   docker-compose exec app npx prisma migrate dev --name <popis_zmeny>
    ```
    Tento příkaz vytvoří v projektu složku `prisma/migrations` se SQL skriptem, aplikuje ho lokálně a přegeneruje klienta. **Tyto migrační soubory musíte commitnout do Gitu.**
 
