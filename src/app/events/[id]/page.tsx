@@ -464,11 +464,17 @@ function EventSettingsModal({
   eventUsers,
   onClose,
   onAddUser,
+  onAddTrack,
+  onUpdateTrack,
+  onDeleteTrack,
 }: {
   event: Event;
   eventUsers: EventUser[];
   onClose: () => void;
   onAddUser: (email: string) => Promise<void>;
+  onAddTrack: () => Promise<void>;
+  onUpdateTrack: (trackId: string, updates: any) => Promise<void>;
+  onDeleteTrack: (trackId: string) => Promise<void>;
 }) {
   const [email, setEmail] = useState('');
   const [adding, setAdding] = useState(false);
@@ -527,6 +533,41 @@ function EventSettingsModal({
               </button>
             </form>
           </div>
+
+          {/* --- Sekce pro Správu linek (Tracks) --- */}
+          <div>
+            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Programové linky (Tracks)</h3>
+            <div className="space-y-3 mb-4">
+              {event.tracks.map(track => (
+                <div key={track.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                  <input 
+                    type="color" 
+                    value={track.color || '#3b82f6'} 
+                    onChange={e => onUpdateTrack(track.id, { color: e.target.value })}
+                    className="w-8 h-8 rounded cursor-pointer border-none bg-transparent"
+                  />
+                  <input 
+                    type="text" 
+                    value={track.name} 
+                    onChange={e => onUpdateTrack(track.id, { name: e.target.value })}
+                    className="flex-1 bg-transparent border-none focus:ring-0 text-sm font-bold p-0"
+                  />
+                  <button 
+                    onClick={() => onDeleteTrack(track.id)}
+                    className="text-gray-300 hover:text-red-500 transition-colors"
+                    title="Smazat linku"
+                  >✕</button>
+                </div>
+              ))}
+              {event.tracks.length === 0 && <p className="text-xs text-gray-400 italic text-center py-2">Žádné linky nebyly vytvořeny.</p>}
+            </div>
+            <button 
+              onClick={onAddTrack}
+              className="w-full py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-200 transition-colors"
+            >
+              + Přidat novou linku
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -581,17 +622,48 @@ export default function EventPlanner({ params }: { params: Promise<{ id: string 
         body: JSON.stringify({ email, role: 'EDITOR' })
       });
       if (res.ok) {
-          const usersRes = await fetch(`/api/events/${eventId}/users`);
-          if (usersRes.ok) {
-             setEventUsers(await usersRes.json());
-          }
+          fetchData();
       } else {
           const err = await res.json();
           alert(err.error || 'Nastala chyba při přidávání uživatele.');
       }
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleAddTrack = async () => {
+    try {
+      const res = await fetch(`/api/events/${eventId}/tracks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Nová linka', color: '#3b82f6' })
+      });
+      if (res.ok) fetchData();
+    } catch (e) { console.error(e); }
+  };
+
+  const handleUpdateTrack = async (trackId: string, updates: any) => {
+    try {
+      const res = await fetch(`/api/tracks/${trackId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      if (res.ok) {
+        // Optimistická aktualizace pro lepší UX u color pickerů a inputů
+        if (event) {
+          const newTracks = event.tracks.map(t => t.id === trackId ? { ...t, ...updates } : t);
+          setEvent({ ...event, tracks: newTracks });
+        }
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleDeleteTrack = async (trackId: string) => {
+    if (!confirm('Opravdu chcete smazat tuto linku? Všechny aktivity z ní budou přesunuty do zásobníku.')) return;
+    try {
+      const res = await fetch(`/api/tracks/${trackId}`, { method: 'DELETE' });
+      if (res.ok) fetchData();
+    } catch (e) { console.error(e); }
   };
 
   useEffect(() => { 
@@ -910,6 +982,9 @@ export default function EventPlanner({ params }: { params: Promise<{ id: string 
           eventUsers={eventUsers} 
           onClose={() => setIsSettingsOpen(false)} 
           onAddUser={handleAddUser} 
+          onAddTrack={handleAddTrack}
+          onUpdateTrack={handleUpdateTrack}
+          onDeleteTrack={handleDeleteTrack}
         />
       )}
 
