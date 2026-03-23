@@ -52,12 +52,16 @@ export default async function LoginPage(props: { searchParams: Promise<{ error?:
           action={async (formData) => {
             "use server"
             try {
-              await signIn("credentials", formData)
+              await signIn("credentials", {
+                email: formData.get("email"),
+                password: formData.get("password"),
+                redirectTo: "/",
+              })
             } catch (e) {
               if (e instanceof AuthError) {
                 redirect("/login?error=CredentialsSignin")
               }
-              throw e // Toto propustí NEXT_REDIRECT dál
+              throw e
             }
           }}
         >
