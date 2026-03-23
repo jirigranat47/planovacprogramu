@@ -8,7 +8,7 @@ export default function DashboardClient({ session }: { session: any }) {
   const [events, setEvents] = useState<any[]>([]); // Použijeme any pro přístup k role z EventUser
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterRole, setFilterRole] = useState<'ALL' | 'OWNER' | 'EDITOR' | 'VIEWER'>('ALL');
+  const [filterRole, setFilterRole] = useState<'ALL' | 'OWNER' | 'EDITOR' | 'VIEWER' | 'ARCHIVED'>('ALL');
   const [isCreating, setIsCreating] = useState(false);
   const [newEvent, setNewEvent] = useState({
     name: '',
@@ -34,8 +34,14 @@ export default function DashboardClient({ session }: { session: any }) {
 
   const filteredEvents = events.filter(e => {
     const matchesSearch = e.name.toLowerCase().includes(searchQuery.toLowerCase());
-    // Najdeme roli aktuálního uživatele v této akci
     const myMembership = e.users?.find((u: any) => u.userId === session?.user?.id);
+    
+    // Pokud je filterRole ARCHIVED, zobrazujeme jen archivované
+    if (filterRole === 'ARCHIVED') return e.isArchived && matchesSearch;
+    
+    // Jinak zobrazujeme jen NEarchivované
+    if (e.isArchived) return false;
+
     const matchesFilter = filterRole === 'ALL' || myMembership?.role === filterRole;
     return matchesSearch && matchesFilter;
   });
@@ -70,6 +76,24 @@ export default function DashboardClient({ session }: { session: any }) {
     } catch (error) {
       console.error('Chyba při mazání:', error);
     }
+  };
+
+  const handleDuplicateEvent = async (id: string) => {
+    try {
+      const res = await fetch(`/api/events/${id}/duplicate`, { method: 'POST' });
+      if (res.ok) fetchEvents();
+    } catch (error) { console.error('Chyba při duplikaci:', error); }
+  };
+
+  const handleArchiveEvent = async (id: string, isArchived: boolean) => {
+    try {
+      const res = await fetch(`/api/events/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isArchived })
+      });
+      if (res.ok) fetchEvents();
+    } catch (error) { console.error('Chyba při archivaci:', error); }
   };
 
   if (loading) return (
@@ -125,7 +149,7 @@ export default function DashboardClient({ session }: { session: any }) {
             </div>
             <div className="h-8 w-px bg-gray-100 hidden md:block"></div>
             <div className="flex p-1 bg-gray-50 rounded-xl w-full md:w-auto overflow-x-auto">
-              {(['ALL', 'OWNER', 'EDITOR', 'VIEWER'] as const).map(role => (
+              {(['ALL', 'OWNER', 'EDITOR', 'VIEWER', 'ARCHIVED'] as const).map(role => (
                 <button
                   key={role}
                   onClick={() => setFilterRole(role)}
@@ -135,7 +159,7 @@ export default function DashboardClient({ session }: { session: any }) {
                       : 'text-gray-400 hover:text-gray-600'
                   }`}
                 >
-                  {role === 'ALL' ? 'Všechny' : role === 'OWNER' ? 'Moje' : role === 'EDITOR' ? 'Spolupráce' : 'Jen čtení'}
+                  {role === 'ALL' ? 'Všechny' : role === 'OWNER' ? 'Moje' : role === 'EDITOR' ? 'Spolupráce' : role === 'ARCHIVED' ? 'Archiv' : 'Jen čtení'}
                 </button>
               ))}
             </div>
@@ -214,11 +238,33 @@ export default function DashboardClient({ session }: { session: any }) {
                       {event.name}
                     </h3>
                   </div>
-                  {isOwner && (
-                    <button onClick={() => handleDeleteEvent(event.id)} className="text-gray-200 hover:text-red-500 transition-colors p-2 -mr-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                  <div className="flex gap-1 -mr-2">
+                    <button 
+                      onClick={() => handleDuplicateEvent(event.id)} 
+                      className="text-gray-200 hover:text-blue-500 transition-colors p-2"
+                      title="Duplikovat akci"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
                     </button>
-                  )}
+                    {isOwner && (
+                      <button 
+                        onClick={() => handleArchiveEvent(event.id, !event.isArchived)} 
+                        className="text-gray-200 hover:text-amber-500 transition-colors p-2"
+                        title={event.isArchived ? "Obnovit z archivu" : "Archivovat akci"}
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                      </button>
+                    )}
+                    {isOwner && (
+                      <button 
+                        onClick={() => handleDeleteEvent(event.id)} 
+                        className="text-gray-200 hover:text-red-500 transition-colors p-2"
+                        title="Smazat navždy"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-3 text-sm text-gray-400 mb-8 font-bold">
