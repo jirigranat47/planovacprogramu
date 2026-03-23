@@ -32,15 +32,11 @@ Odteď budeme postupovat takto:
 
 1. **Lokální vývoj:** Když změníte `schema.prisma`, místo `db push` použijte:
    ```bash
-   npx prisma migrate dev --name pridani_noveho_pole
+   npx prisma migrate dev --name <popis_zmeny>
    ```
-   Tento příkaz vytvoří v projektu složku `prisma/migrations`, kde je uložen SQL skript změny. Tento soubor **musíte commitnout do Gitu**.
+   Tento příkaz vytvoří v projektu složku `prisma/migrations` se SQL skriptem, aplikuje ho lokálně a přegeneruje klienta. **Tyto migrační soubory musíte commitnout do Gitu.**
 
-2. **Produkce (Railway):** Při deploymentu Railway automaticky detekuje nové soubory migrací. Aby se aplikovaly na Railway DB bezpečně, upravte build command na Railway na:
-   ```bash
-   npx prisma migrate deploy && next build
-   ```
-   Příkaz `migrate deploy` spustí pouze ty SQL skripty, které v DB ještě neběžely, bez rizika smazání existujících dat.
+2. **Produkce (Railway):** V aktuálním nastavení `Dockerfile` se při každém startu aplikace na Railway automaticky spustí `npx prisma migrate deploy`. Tím se bezpečně aplikují všechny nové migrace z Gitu na produkční DB bez rizika smazání dat. Build na Railway už není na databázi závislý.
 
 ## 4. Postup v Railway konzoli
 
