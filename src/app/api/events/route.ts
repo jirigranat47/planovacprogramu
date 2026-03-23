@@ -20,6 +20,9 @@ export async function GET() {
           }
         }
       },
+      include: {
+        users: true
+      },
       orderBy: { startTime: 'desc' }
     })
     return NextResponse.json(events)
