@@ -31,10 +31,10 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const { name, color } = await request.json()
+    const { name, color, order } = await request.json()
     const updated = await prisma.track.update({
       where: { id },
-      data: { name, color }
+      data: { name, color, order }
     })
     return NextResponse.json(updated)
   } catch (error) {

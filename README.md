@@ -17,7 +17,13 @@ Aplikace je plně kontejnerizovaná a připravená pro lokální vývoj.
    docker-compose exec app npx tsx prisma/seed.ts
    ```
 
-3. **Řešení potíží s Dockerem (pokud npm run dev v kontejneru hází chyby):**
+3. **Aktualizace databáze (migrace):**
+   Pokud se změní schéma (např. po `git pull`), aplikujte migrace:
+   ```bash
+   docker-compose exec app npx prisma migrate dev
+   ```
+
+4. **Řešení potíží s Dockerem (pokud npm run dev v kontejneru hází chyby):**
    Pokud jste přidávali nové balíčky a Docker je "nevidí", je potřeba smazat anonymní volumes pro `node_modules`:
    ```bash
    docker-compose down -v

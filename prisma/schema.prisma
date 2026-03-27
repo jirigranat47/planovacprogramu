@@ -29,6 +29,7 @@ model Track {
   id         String     @id @default(cuid())
   name       String
   color      String?
+  order      Int        @default(0)
   event      Event      @relation(fields: [eventId], references: [id])
   eventId    String
   activities Activity[]

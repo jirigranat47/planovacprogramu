@@ -47,23 +47,23 @@ Základní entity:
 *   [x] **Resize:** Možnost natáhnout/zkrátit délku bloku tažením za okraj.
 *   [x] **Ripple Effect:** Automatický posun navazujících aktivit při změně času/trvání.
 *   [x] **Vizuální zpětná vazba:** Ukazatel cílového času při přetahování.
-*   [ ] **Detailní správa aktivit (Modální okno):**
-    *   **Editace textů:** Změna názvu a podrobného popisu aktivity.
-    *   **Časové určení:** Možnost zadat přesný čas "Od" a "Do" (automatický přepočet trvání).
-    *   **Metadata:** Výběr kategorie (Program, Strava, Přesun...), zodpovědná osoba, URL odkaz na metodiku.
-    *   **Checklist:** Přidávání a odškrtávání podúkolů přímo v detailu aktivity.
-*   [ ] **Správa linek (Tracks):**
-    *   **Přidávání/Odebírání:** Tlačítka pro správu paralelních programových proudů.
-    *   **Editace linek:** Přejmenování linky a změna její unikátní barvy.
-    *   **Řazení linek:** Možnost měnit vertikální pořadí linek na timeline.
-*   [ ] **Nastavení akce (Event Settings):**
-    *   **Globální parametry:** Změna názvu akce, úprava celkového časového rozsahu (start/end date).
-    *   **Generování mřížky:** Dynamické překreslení timeline při změně datumu akce.
-*   [ ] **Dashboard v2:**
-    *   Vyhledávání a filtrace v seznamu akcí.
-    *   **Duplikace:** Vytvoření nové akce na základě existující (kopírování struktury a linek).
-    *   **Vizualizace spolupracovníků:** Zobrazení seznamu lidí (vlastník + editoři) na kartě akce ve formě avatarů s tooltipem jména.
-    *   Archivace starých akcí.
+*   [x] **Detailní správa aktivit (Modální okno):**
+    *   [x] **Editace textů:** Změna názvu a podrobného popisu aktivity.
+    *   [x] **Časové určení:** Možnost zadat přesný čas "Od" a "Do" (automatický přepočet trvání).
+    *   [x] **Metadata:** Výběr kategorie (Program, Strava, Přesun...), zodpovědná osoba, URL odkaz na metodiku.
+    *   [x] **Checklist:** Přidávání a odškrtávání podúkolů přímo v detailu aktivity.
+*   [/] **Správa linek (Tracks):**
+    *   [x] **Přidávání/Odebírání:** Tlačítka pro správu paralelních programových proudů.
+    *   [x] **Editace linek:** Přejmenování linky a změna její unikátní barvy.
+    *   [ ] **Řazení linek:** Možnost měnit vertikální pořadí linek na timeline.
+*   [x] **Nastavení akce (Event Settings):**
+    *   [x] **Globální parametry:** Změna názvu akce, úprava celkového časového rozsahu (start/end date).
+    *   [x] **Generování mřížky:** Dynamické překreslení timeline při změně datumu akce.
+*   [x] **Dashboard v2:**
+    *   [x] Vyhledávání a filtrace v seznamu akcí.
+    *   [x] **Duplikace:** Vytvoření nové akce na základě existující (kopírování struktury a linek).
+    *   [x] **Vizualizace spolupracovníků:** Zobrazení seznamu lidí (vlastník + editoři) na kartě akce ve formě avatarů s tooltipem jména.
+    *   [x] Archivace starých akcí.
 *   [ ] **Smart Gaps & Filling:** Kontextové menu pro rychlé vyplnění děr v programu.
 *   [ ] **Anchor Points:** Globální synchronizační body pro hromadný posun linek.
 

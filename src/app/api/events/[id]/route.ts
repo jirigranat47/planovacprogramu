@@ -33,7 +33,17 @@ export async function GET(
     const event = await prisma.event.findUnique({
       where: { id },
       include: {
+        users: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true, image: true }
+            }
+          }
+        },
         tracks: {
+          orderBy: {
+            order: 'asc'
+          },
           include: {
             activities: {
               include: {
@@ -56,13 +66,22 @@ export async function GET(
     })
     
     if (!event) {
+      console.warn('Event not found:', id)
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
     
     return NextResponse.json(event)
-  } catch (error) {
-    console.error('API Error:', error)
-    return NextResponse.json({ error: 'Failed to fetch event' }, { status: 500 })
+  } catch (error: any) {
+    console.error('Detailed API Error during Event Fetch:', error)
+    return NextResponse.json({ 
+      error: 'Failed to fetch event',
+      details: error.message,
+      prismaError: {
+        message: error.message,
+        code: error.code,
+        meta: error.meta
+      }
+    }, { status: 500 })
   }
 }
 
@@ -118,7 +137,7 @@ export async function PATCH(
 
   try {
     const { id } = await params;
-    const { name, startTime, endTime, isArchived } = await request.json();
+    const { name, startTime, endTime, isArchived, users } = await request.json();
 
     // Ověřit oprávnění
     const userAccess = await prisma.eventUser.findUnique({

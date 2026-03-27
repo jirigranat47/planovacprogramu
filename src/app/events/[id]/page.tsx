@@ -468,6 +468,7 @@ function EventSettingsModal({
   onUpdateTrack,
   onDeleteTrack,
   onUpdateEvent,
+  onReorderTracks,
 }: {
   event: Event;
   eventUsers: EventUser[];
@@ -477,12 +478,22 @@ function EventSettingsModal({
   onUpdateTrack: (trackId: string, updates: any) => Promise<void>;
   onDeleteTrack: (trackId: string) => Promise<void>;
   onUpdateEvent: (updates: any) => Promise<void>;
+  onReorderTracks: (trackIds: string[]) => Promise<void>;
 }) {
   const [email, setEmail] = useState('');
   const [adding, setAdding] = useState(false);
   const [eventName, setEventName] = useState(event.name);
   const [startTime, setStartTime] = useState(new Date(event.startTime).toISOString().slice(0, 16));
   const [endTime, setEndTime] = useState(new Date(event.endTime).toISOString().slice(0, 16));
+
+  const handleMoveTrack = (index: number, direction: 'up' | 'down') => {
+    const newTracks = [...event.tracks];
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= newTracks.length) return;
+    
+    [newTracks[index], newTracks[newIndex]] = [newTracks[newIndex], newTracks[index]];
+    onReorderTracks(newTracks.map(t => t.id));
+  };
 
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -590,26 +601,16 @@ function EventSettingsModal({
           <div>
             <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Programové linky (Tracks)</h3>
             <div className="space-y-3 mb-4">
-              {event.tracks.map(track => (
-                <div key={track.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                  <input 
-                    type="color" 
-                    value={track.color || '#3b82f6'} 
-                    onChange={e => onUpdateTrack(track.id, { color: e.target.value })}
-                    className="w-8 h-8 rounded cursor-pointer border-none bg-transparent"
-                  />
-                  <input 
-                    type="text" 
-                    value={track.name} 
-                    onChange={e => onUpdateTrack(track.id, { name: e.target.value })}
-                    className="flex-1 bg-transparent border-none focus:ring-0 text-sm font-bold p-0"
-                  />
-                  <button 
-                    onClick={() => onDeleteTrack(track.id)}
-                    className="text-gray-300 hover:text-red-500 transition-colors"
-                    title="Smazat linku"
-                  >✕</button>
-                </div>
+              {event.tracks.map((track, idx) => (
+                <TrackRow 
+                  key={track.id} 
+                  track={track} 
+                  isFirst={idx === 0}
+                  isLast={idx === event.tracks.length - 1}
+                  onUpdate={onUpdateTrack}
+                  onDelete={onDeleteTrack}
+                  onMove={(dir) => handleMoveTrack(idx, dir)}
+                />
               ))}
               {event.tracks.length === 0 && <p className="text-xs text-gray-400 italic text-center py-2">Žádné linky nebyly vytvořeny.</p>}
             </div>
@@ -622,6 +623,63 @@ function EventSettingsModal({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Pomocná komponenta pro řádek s linkou (řeší lagování inputu přes local state)
+function TrackRow({ track, onUpdate, onDelete, onMove, isFirst, isLast }: {
+  track: Track;
+  onUpdate: (id: string, updates: any) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  onMove: (direction: 'up' | 'down') => void;
+  isFirst: boolean;
+  isLast: boolean;
+}) {
+  const [localName, setLocalName] = useState(track.name);
+
+  useEffect(() => {
+    setLocalName(track.name);
+  }, [track.name]);
+
+  return (
+    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+      <div className="flex flex-col gap-1 pr-1 border-r border-gray-100">
+        <button 
+          onClick={() => onMove('up')}
+          disabled={isFirst}
+          className="w-6 h-6 flex items-center justify-center bg-white border border-gray-200 rounded shadow-sm text-xs text-blue-500 hover:bg-blue-50 active:scale-95 disabled:opacity-0 transition-all font-bold"
+          title="Posunout nahoru"
+        >▲</button>
+        <button 
+          onClick={() => onMove('down')}
+          disabled={isLast}
+          className="w-6 h-6 flex items-center justify-center bg-white border border-gray-200 rounded shadow-sm text-xs text-blue-500 hover:bg-blue-50 active:scale-95 disabled:opacity-0 transition-all font-bold"
+          title="Posunout dolů"
+        >▼</button>
+      </div>
+      <input 
+        type="color" 
+        value={track.color || '#3b82f6'} 
+        onChange={e => onUpdate(track.id, { color: e.target.value })}
+        className="w-8 h-8 rounded cursor-pointer border-none bg-transparent"
+      />
+      <input 
+        type="text" 
+        value={localName} 
+        onChange={e => setLocalName(e.target.value)}
+        onBlur={() => {
+          if (localName !== track.name) {
+            onUpdate(track.id, { name: localName });
+          }
+        }}
+        className="flex-1 bg-transparent border-none focus:ring-0 text-sm font-bold p-0"
+      />
+      <button 
+        onClick={() => onDelete(track.id)}
+        className="text-gray-300 hover:text-red-500 transition-colors"
+        title="Smazat linku"
+      >✕</button>
     </div>
   );
 }
@@ -653,11 +711,8 @@ export default function EventPlanner({ params }: { params: Promise<{ id: string 
       if (!res.ok) throw new Error('Failed to fetch event');
       const data = await res.json();
       setEvent(data);
-      
-      const usersRes = await fetch(`/api/events/${eventId}/users`);
-      if (usersRes.ok) {
-        const usersOnlyData = await usersRes.json();
-        setEventUsers(usersOnlyData);
+      if (data.users) {
+        setEventUsers(data.users);
       }
     } catch (error) {
       console.error('Chyba při načítání dat:', error);
@@ -733,6 +788,17 @@ export default function EventPlanner({ params }: { params: Promise<{ id: string 
         if (updates.startTime || updates.endTime) fetchData();
       }
     } catch (e) { console.error('Chyba při aktualizaci akce:', e); }
+  };
+
+  const handleReorderTracks = async (trackIds: string[]) => {
+    try {
+      const res = await fetch(`/api/events/${eventId}/tracks/reorder`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trackIds })
+      });
+      if (res.ok) fetchData();
+    } catch (e) { console.error(e); }
   };
 
   useEffect(() => { 
@@ -1058,6 +1124,7 @@ export default function EventPlanner({ params }: { params: Promise<{ id: string 
           onUpdateTrack={handleUpdateTrack}
           onDeleteTrack={handleDeleteTrack}
           onUpdateEvent={handleUpdateEvent}
+          onReorderTracks={handleReorderTracks}
         />
       )}
 

@@ -31,17 +31,37 @@ export async function POST(
   }
 
   try {
-    const { name, color } = await request.json()
+    console.log('Adding track for event:', eventId)
+    
+    // Zjistíme nejvyšší aktuální 'order'
+    const maxOrder = await prisma.track.aggregate({
+      where: { eventId },
+      _max: { order: true }
+    })
+
+    const nextOrder = (maxOrder._max?.order ?? -1) + 1
+    console.log('Next track order:', nextOrder)
+
     const track = await prisma.track.create({
       data: {
-        name: name || 'Nová linka',
-        color: color || '#3b82f6',
+        name: 'Nová linka',
+        color: '#3B82F6',
+        order: nextOrder,
         eventId
       }
     })
+
     return NextResponse.json(track)
-  } catch (error) {
-    console.error('Chyba při vytváření linky:', error)
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+  } catch (error: any) {
+    console.error('Detailed API Error during Track Creation:', error)
+    return NextResponse.json({ 
+      error: 'Failed to create track',
+      details: error.message,
+      prismaError: {
+        message: error.message,
+        code: error.code,
+        meta: error.meta
+      }
+    }, { status: 500 })
   }
 }

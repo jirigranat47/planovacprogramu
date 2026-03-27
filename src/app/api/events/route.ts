@@ -51,7 +51,13 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
+    console.log('Event Creation Payload:', body)
     const { name, startTime, endTime } = body
+
+    if (!name || !startTime || !endTime) {
+      console.warn('Missing required fields:', { name, startTime, endTime })
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
 
     const event = await prisma.event.create({
       data: {
@@ -60,12 +66,9 @@ export async function POST(request: Request) {
         endTime: new Date(endTime),
         tracks: {
           create: [
-            { name: 'Vlčata', color: '#3B82F6' },
-            { name: 'Skauti', color: '#10B981' },
-            { name: 'Roveři', color: '#8B5CF6' }
+            { name: 'Hlavní program', color: '#3B82F6' }
           ]
         },
-        // Automaticky přidáme tvůrce jako OWNERa
         users: {
           create: {
             userId: session.user.id,
@@ -75,9 +78,21 @@ export async function POST(request: Request) {
       }
     })
 
+    console.log('Event created successfully:', event.id)
     return NextResponse.json(event)
-  } catch (error) {
-    console.error('API Error:', error)
-    return NextResponse.json({ error: 'Failed to create event' }, { status: 500 })
+  } catch (error: any) {
+    console.error('Detailed API Error during Event Creation:', error)
+    // If it's a Prisma error, it might have a 'code' or 'meta' field
+    const errorDetails = {
+      message: error.message,
+      code: error.code,
+      meta: error.meta,
+      clientVersion: error.clientVersion
+    }
+    return NextResponse.json({ 
+      error: 'Failed to create event', 
+      details: error.message,
+      prismaError: errorDetails 
+    }, { status: 500 })
   }
 }
