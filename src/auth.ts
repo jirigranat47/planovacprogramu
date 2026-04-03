@@ -19,14 +19,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: "Heslo", type: "password" },
       },
       async authorize(credentials) {
+        console.log("SERVER: Autorizace pro:", credentials?.email);
         if (!credentials?.email || !credentials?.password) return null
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email as string }
         })
 
-        if (!user || (!user.password && credentials.password !== "test")) {
-          return null
+        if (!user) {
+          console.warn("SERVER: Uživatel nenalezen:", credentials.email);
+          return null;
+        }
+
+        if (!user.password && credentials.password !== "test") {
+          console.warn("SERVER: Uživatel nemá heslo a nepoužil 'test'");
+          return null;
         }
 
         // Pokud je uživatel bez hesla a zkusí heslo "test", pustíme ho dál jen pro vývojové účely
@@ -38,6 +45,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
            isValid = true
         }
 
+        console.log("SERVER: Platnost hesla:", isValid);
         if (!isValid) return null
 
         return user

@@ -17,13 +17,17 @@ export default function DashboardClient({ session }: { session: any }) {
   });
 
   const fetchEvents = async () => {
+    console.log("CLIENT: Načítám akce přes /api/events...");
     try {
       const res = await fetch('/api/events');
+      console.log("CLIENT: Odpověď z API status:", res.status);
       const data = await res.json();
+      console.log("CLIENT: Data načtena:", data.length, "akcí");
       setEvents(data);
     } catch (error) {
-      console.error('Chyba při načítání akcí:', error);
+      console.error('CLIENT: Chyba při načítání akcí:', error);
     } finally {
+      console.log("CLIENT: Vypínám loading state");
       setLoading(false);
     }
   };

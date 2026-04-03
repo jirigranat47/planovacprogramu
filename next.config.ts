@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   output: "standalone",
   transpilePackages: ["@auth/prisma-adapter", "@auth/core"],
+  allowedDevOrigins: ["host.docker.internal"],
 };
 
 export default nextConfig;

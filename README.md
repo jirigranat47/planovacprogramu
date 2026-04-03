@@ -34,6 +34,13 @@ Aplikace je plně kontejnerizovaná a připravená pro lokální vývoj.
    - Web: `http://localhost:3000`
    - DB: `localhost:5432` (user: password, db: planaer_db)
 
+## 🧪 Testovací přístupy
+
+Pro usnadnění vývoje a testování byl vytvořen testovací účet:
+- **Email:** `antigravity@test.cz`
+- **Heslo:** `Password123!`
+- **Jméno:** `Antigravity AI`
+
 ## 🛠 Technologický Stack
 
 - **Frontend:** Next.js 16 (App Router), TypeScript, Tailwind CSS
